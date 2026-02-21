@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS - Challenges & Future Work</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #000000;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            color: #FFFFFF;
+        }
+
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.03) 2px, rgba(0, 255, 255, 0.03) 4px);
+            pointer-events: none;
+            animation: scanlines 8s linear infinite;
+            z-index: 10;
+        }
+
+        @keyframes scanlines {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(10px);
+            }
+        }
+
+        .header {
+            padding: 40px 60px;
+            border-bottom: 2px solid #FF00FF;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            text-shadow: 2px 0 0 #00FFFF, -2px 0 0 #FF00FF;
+            letter-spacing: 2px;
+        }
+
+        .content {
+            padding: 40px 60px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .challenge-box h2 {
+            color: #FF00FF;
+            font-size: 26px;
+            margin-bottom: 20px;
+        }
+
+        .future-box h2 {
+            color: #00FFFF;
+            font-size: 26px;
+            margin-bottom: 20px;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        li {
+            font-size: 18px;
+            margin-bottom: 15px;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .challenge-box li::before {
+            content: '×';
+            position: absolute;
+            left: 0;
+            color: #FF00FF;
+            font-weight: bold;
+        }
+
+        .future-box li::before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: #00FFFF;
+            font-weight: bold;
+        }
+
+        .research-panel {
+            grid-column: span 2;
+            margin-top: 20px;
+            padding: 20px;
+            border: 1px dashed rgba(255, 255, 255, 0.3);
+        }
+
+        .research-panel h3 {
+            color: #FFFFFF;
+            font-size: 20px;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .research-panel p {
+            font-size: 16px;
+            color: #888;
+        }
+
+        .corner-bracket {
+            position: absolute;
+            font-size: 40px;
+            z-index: 2;
+        }
+
+        .corner-tl {
+            top: 20px;
+            left: 20px;
+            color: #00FFFF;
+        }
+
+        .corner-tr {
+            top: 20px;
+            right: 20px;
+            color: #FF00FF;
+        }
+
+        .corner-bl {
+            bottom: 20px;
+            left: 20px;
+            color: #FF00FF;
+        }
+
+        .corner-br {
+            bottom: 20px;
+            right: 20px;
+            color: #00FFFF;
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 40px;
+            right: 60px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="slide-container">
+        <div class="corner-bracket corner-tl">[</div>
+        <div class="corner-bracket corner-tr">]</div>
+        <div class="corner-bracket corner-bl">]</div>
+        <div class="corner-bracket corner-br">[</div>
+
+        <div class="header">
+            <h1>LIMITATIONS & OPPORTUNITIES</h1>
+        </div>
+
+        <div class="content">
+            <div class="challenge-box">
+                <h2>Current Challenges</h2>
+                <ul>
+                    <li>Assumes reliable communication</li>
+                    <li>CoordinatorAgent as potential bottleneck</li>
+                    <li>Fixed threat scenarios</li>
+                    <li>No machine learning integration</li>
+                </ul>
+            </div>
+            <div class="future-box">
+                <h2>Future Work</h2>
+                <ul>
+                    <li>Distributed Consensus (Byzantine fault tolerance)</li>
+                    <li>ML-driven threat pattern recognition</li>
+                    <li>Adaptive resource allocation strategies</li>
+                    <li>Swarm intelligence for drone swarms</li>
+                </ul>
+            </div>
+            <div class="research-panel">
+                <h3>Research Directions</h3>
+                <p>Can multi-agent systems learn to resolve conflicting decisions in real-time without central
+                    arbitration? How does the system scale to thousands of heterogeneous agents?</p>
+            </div>
+        </div>
+        <div class="watermark">TARS_CORE_SYSTEM_BETA_V1.0 // P.15</div>
+    </div>
+</body>
+
+</html>

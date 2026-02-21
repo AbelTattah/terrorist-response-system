@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS - Reactive Behavior</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #000000;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            color: #FFFFFF;
+        }
+
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.03) 2px, rgba(0, 255, 255, 0.03) 4px);
+            pointer-events: none;
+            animation: scanlines 8s linear infinite;
+            z-index: 10;
+        }
+
+        @keyframes scanlines {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(10px);
+            }
+        }
+
+        .header {
+            padding: 40px 60px;
+            border-bottom: 2px solid #FF00FF;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            text-shadow: 2px 0 0 #00FFFF, -2px 0 0 #FF00FF;
+            letter-spacing: 2px;
+        }
+
+        .content {
+            padding: 30px 60px;
+            position: relative;
+            z-index: 2;
+            height: 550px;
+            overflow-y: auto;
+        }
+
+        .timeline {
+            border-left: 2px solid #00FFFF;
+            margin-left: 20px;
+            padding-left: 30px;
+            position: relative;
+        }
+
+        .time-entry {
+            margin-bottom: 12px;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .time-entry::before {
+            content: '';
+            position: absolute;
+            left: -36px;
+            top: 8px;
+            width: 10px;
+            height: 10px;
+            background: #FF00FF;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #FF00FF;
+        }
+
+        .time-label {
+            color: #00FFFF;
+            font-weight: bold;
+            min-width: 80px;
+            font-size: 18px;
+        }
+
+        .time-content {
+            font-size: 18px;
+        }
+
+        .highlight-agent {
+            color: #FF00FF;
+            font-weight: bold;
+        }
+
+        .summary-box {
+            position: absolute;
+            bottom: 40px;
+            left: 60px;
+            right: 60px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid #00FFFF;
+            padding: 15px;
+            text-align: center;
+            z-index: 5;
+        }
+
+        .summary-box b {
+            color: #FF00FF;
+            font-size: 22px;
+        }
+
+        .corner-bracket {
+            position: absolute;
+            font-size: 40px;
+            z-index: 2;
+        }
+
+        .corner-tl {
+            top: 20px;
+            left: 20px;
+            color: #00FFFF;
+        }
+
+        .corner-tr {
+            top: 20px;
+            right: 20px;
+            color: #FF00FF;
+        }
+
+        .corner-bl {
+            bottom: 20px;
+            left: 20px;
+            color: #FF00FF;
+        }
+
+        .corner-br {
+            bottom: 20px;
+            right: 20px;
+            color: #00FFFF;
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 40px;
+            right: 60px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="slide-container">
+        <div class="corner-bracket corner-tl">[</div>
+        <div class="corner-bracket corner-tr">]</div>
+        <div class="corner-bracket corner-bl">]</div>
+        <div class="corner-bracket corner-br">[</div>
+
+        <div class="header">
+            <h1>REACTIVE BEHAVIOR IN ACTION</h1>
+        </div>
+
+        <div class="content">
+            <div class="timeline">
+                <div class="time-entry"><span class="time-label">T+0s</span>
+                    <div class="time-content"><span class="highlight-agent">SensorAgent</span> detects attack from news
+                        API</div>
+                </div>
+                <div class="time-entry"><span class="time-label">T+1s</span>
+                    <div class="time-content"><span class="highlight-agent">SensorAgent</span> sends alert to
+                        Coordinator</div>
+                </div>
+                <div class="time-entry"><span class="time-label">T+1.5s</span>
+                    <div class="time-content"><span class="highlight-agent">Coordinator</span> begins threat analysis
+                    </div>
+                </div>
+                <div class="time-entry"><span class="time-label">T+2.5s</span>
+                    <div class="time-content"><span class="highlight-agent">Coordinator</span> completes analysis
+                        (Threat Level 9)</div>
+                </div>
+                <div class="time-entry"><span class="time-label">T+3s</span>
+                    <div class="time-content"><span class="highlight-agent">Rescue</span> & <span
+                            class="highlight-agent">DomeDefense</span> receives deployment orders</div>
+                </div>
+                <div class="time-entry"><span class="time-label">T+8s</span>
+                    <div class="time-content"><span class="highlight-agent">Rescue</span> troops arrive → ENGAGED</div>
+                </div>
+                <div class="time-entry"><span class="time-label">T+8.5s</span>
+                    <div class="time-content"><span class="highlight-agent">DomeDefense</span> launches interceptor
+                        drone</div>
+                </div>
+                <div class="time-entry"><span class="time-label">T+9.5s</span>
+                    <div class="time-content">Missile intercepted successfully</div>
+                </div>
+            </div>
+
+            <div class="summary-box">
+                Total system response time: <b>9.4 SECONDS</b> from detection to interception
+            </div>
+        </div>
+        <div class="watermark">TARS_CORE_SYSTEM_BETA_V1.0 // P.09</div>
+    </div>
+</body>
+
+</html>

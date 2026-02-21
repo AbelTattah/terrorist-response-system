@@ -1,15 +1,22 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, User, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
+const mockUsers = new Map<string, User>();
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
-  if (!_db && process.env.DATABASE_URL) {
+  if (!_db && process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('mysql')) {
     try {
       _db = drizzle(process.env.DATABASE_URL);
+      // Test connection
+      const connection = await _db.select().from(users).limit(1).catch(() => null);
+      if (!connection) {
+        console.warn("[Database] MySQL connection failed, falling back to mock DB.");
+        _db = null;
+      }
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -25,7 +32,21 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot upsert user: database not available");
+    console.log("[Database] Using mock store for upsertUser:", user.openId);
+    const existing = mockUsers.get(user.openId);
+    const now = new Date();
+    const updatedUser: User = {
+      id: existing?.id ?? Math.floor(Math.random() * 10000),
+      openId: user.openId,
+      name: user.name ?? existing?.name ?? null,
+      email: user.email ?? existing?.email ?? null,
+      loginMethod: user.loginMethod ?? existing?.loginMethod ?? null,
+      role: user.role ?? existing?.role ?? (user.openId === ENV.ownerOpenId ? 'admin' : 'user'),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      lastSignedIn: user.lastSignedIn ?? now,
+    };
+    mockUsers.set(user.openId, updatedUser);
     return;
   }
 
@@ -72,21 +93,36 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       set: updateSet,
     });
   } catch (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw error;
+    console.error("[Database] Failed to upsert user, falling back to mock:", error);
+    // Fallback on error
+    const existing = mockUsers.get(user.openId);
+    const now = new Date();
+    mockUsers.set(user.openId, {
+      id: existing?.id ?? 0,
+      openId: user.openId,
+      name: user.name ?? existing?.name ?? null,
+      email: user.email ?? existing?.email ?? null,
+      loginMethod: user.loginMethod ?? existing?.loginMethod ?? null,
+      role: user.role ?? existing?.role ?? 'user',
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: now,
+      lastSignedIn: user.lastSignedIn ?? now,
+    });
   }
 }
 
 export async function getUserByOpenId(openId: string) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot get user: database not available");
-    return undefined;
+    console.log("[Database] Using mock store for getUserByOpenId:", openId);
+    return mockUsers.get(openId);
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
-
-  return result.length > 0 ? result[0] : undefined;
+  try {
+    const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+    return result.length > 0 ? result[0] : mockUsers.get(openId);
+  } catch (error) {
+    console.warn("[Database] Fetch failed, checking mock store:", error);
+    return mockUsers.get(openId);
+  }
 }
-
-// TODO: add feature queries here as your schema grows.

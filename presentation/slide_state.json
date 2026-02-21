@@ -1,0 +1,216 @@
+{
+  "project_info": {
+    "title": "TARS: Terrorist Attack Response System",
+    "created": 1771666331.9965022,
+    "last_updated": 1771666350.1495583,
+    "total_slides": 17
+  },
+  "slides": [
+    {
+      "id": "title_slide",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "problem_statement",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "architecture_overview",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "fsm_fundamentals",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "sensor_agent_fsm",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "coordinator_agent_fsm",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "rescue_agent_fsm",
+      "state": "edited",
+      "pageNum": 7
+    },
+    {
+      "id": "dome_defense_fsm",
+      "state": "edited",
+      "pageNum": 8
+    },
+    {
+      "id": "reactive_behavior",
+      "state": "edited",
+      "pageNum": 9
+    },
+    {
+      "id": "execution_trace",
+      "state": "edited",
+      "pageNum": 10
+    },
+    {
+      "id": "system_integration",
+      "state": "edited",
+      "pageNum": 11
+    },
+    {
+      "id": "performance_metrics",
+      "state": "edited",
+      "pageNum": 12
+    },
+    {
+      "id": "educational_value",
+      "state": "edited",
+      "pageNum": 13
+    },
+    {
+      "id": "technical_stack",
+      "state": "edited",
+      "pageNum": 14
+    },
+    {
+      "id": "challenges_future",
+      "state": "edited",
+      "pageNum": 15
+    },
+    {
+      "id": "conclusion",
+      "state": "edited",
+      "pageNum": 16
+    },
+    {
+      "id": "references",
+      "state": "edited",
+      "pageNum": 17
+    }
+  ],
+  "outline": [
+    {
+      "id": "title_slide",
+      "title": "TARS: Terrorist Attack Response System",
+      "summary": "Title slide introducing the decentralized multi-agent system for emergency response with FSM-based reactive behaviors",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "problem_statement",
+      "title": "Emergency Response Under Uncertainty",
+      "summary": "Problem statement explaining challenges of centralized systems during terrorist attacks and why decentralized multi-agent systems are needed",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "architecture_overview",
+      "title": "Four-Agent Decentralized Defense Network",
+      "summary": "System architecture overview showing the four specialized agents (Sensor, Coordinator, Rescue, Defense) and their roles",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "fsm_fundamentals",
+      "title": "FSM: The Foundation of Reactive Behavior",
+      "summary": "Introduction to Finite State Machines, explaining states, transitions, events, and actions with examples",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "sensor_agent_fsm",
+      "title": "Event Detection Through Continuous Monitoring",
+      "summary": "SensorAgent FSM with three states (IDLE, MONITORING, ALERT_TRIGGERED) and behavior specifications",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "coordinator_agent_fsm",
+      "title": "Strategic Decision-Making Under Pressure",
+      "summary": "CoordinatorAgent FSM showing threat analysis and task assignment with decision matrix",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "rescue_agent_fsm",
+      "title": "Ground Response Coordination",
+      "summary": "RescueAgent FSM for troop deployment with unit sizes and deployment times",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "dome_defense_fsm",
+      "title": "Autonomous Missile Interception",
+      "summary": "DomeDefenseAgent FSM for air defense with missile detection and interception specifications",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "reactive_behavior",
+      "title": "System Response to Terrorist Attack Event",
+      "summary": "Complete execution trace showing system response from detection to interception in 9.4 seconds",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "execution_trace",
+      "title": "Complete Auditability Through Event Logging",
+      "summary": "Execution trace logging system showing timestamp, agent, event type, state changes, and context",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "system_integration",
+      "title": "Message-Passing Architecture Enables Decentralization",
+      "summary": "Communication architecture with message types and benefits of asynchronous message passing",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "performance_metrics",
+      "title": "Quantifying System Effectiveness",
+      "summary": "Key metrics including response times, reliability rates, and scalability numbers",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "educational_value",
+      "title": "Understanding Distributed Systems Through TARS",
+      "summary": "Educational outcomes covering FSM, multi-agent systems, reactive behavior, and practical applications",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "technical_stack",
+      "title": "Modern Technologies for Distributed Systems",
+      "summary": "Technology stack including SPADE, Flask, React, and deployment infrastructure",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "challenges_future",
+      "title": "Limitations and Opportunities for Enhancement",
+      "summary": "Current limitations and future enhancements including distributed consensus and machine learning",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "conclusion",
+      "title": "FSMs and Multi-Agent Systems Enable Rapid Emergency Response",
+      "summary": "Key findings, practical implications, and broader impact of the research",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    },
+    {
+      "id": "references",
+      "title": "Further Learning and Implementation",
+      "summary": "Academic references, technical resources, and contact information",
+      "image_plan": "Use a suitable image if needed",
+      "slide_template_key": ""
+    }
+  ]
+}

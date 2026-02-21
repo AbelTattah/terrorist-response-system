@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS - SensorAgent FSM</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #000000;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            color: #FFFFFF;
+        }
+
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.03) 2px, rgba(0, 255, 255, 0.03) 4px);
+            pointer-events: none;
+            animation: scanlines 8s linear infinite;
+            z-index: 10;
+        }
+
+        @keyframes scanlines {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(10px);
+            }
+        }
+
+        .header {
+            padding: 40px 60px;
+            border-bottom: 2px solid #FF00FF;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            text-shadow: 2px 0 0 #00FFFF, -2px 0 0 #FF00FF;
+            letter-spacing: 2px;
+        }
+
+        .content {
+            padding: 40px 60px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .state-description h2 {
+            color: #00FFFF;
+            font-size: 28px;
+            margin-bottom: 20px;
+            border-left: 5px solid #00FFFF;
+            padding-left: 15px;
+        }
+
+        .state-box {
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            padding: 15px;
+            background: rgba(0, 255, 255, 0.05);
+            margin-bottom: 15px;
+        }
+
+        .state-box h3 {
+            color: #FF00FF;
+            margin-bottom: 8px;
+            font-size: 20px;
+        }
+
+        .state-box ul {
+            list-style: none;
+            padding-left: 20px;
+        }
+
+        .state-box li {
+            font-size: 16px;
+            margin-bottom: 5px;
+            position: relative;
+        }
+
+        .state-box li::before {
+            content: '>';
+            position: absolute;
+            left: -20px;
+            color: #00FFFF;
+        }
+
+        .fsm-diagram {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 255, 255, 0.02);
+            border: 1px dashed #00FFFF;
+        }
+
+        .node {
+            width: 180px;
+            height: 60px;
+            border: 2px solid #00FFFF;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 5;
+            margin: 20px 0;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+
+        .arrow {
+            font-size: 30px;
+            color: #FF00FF;
+        }
+
+        .corner-bracket {
+            position: absolute;
+            font-size: 40px;
+            z-index: 2;
+        }
+
+        .corner-tl {
+            top: 20px;
+            left: 20px;
+            color: #00FFFF;
+        }
+
+        .corner-tr {
+            top: 20px;
+            right: 20px;
+            color: #FF00FF;
+        }
+
+        .corner-bl {
+            bottom: 20px;
+            left: 20px;
+            color: #FF00FF;
+        }
+
+        .corner-br {
+            bottom: 20px;
+            right: 20px;
+            color: #00FFFF;
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 40px;
+            right: 60px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="slide-container">
+        <div class="corner-bracket corner-tl">[</div>
+        <div class="corner-bracket corner-tr">]</div>
+        <div class="corner-bracket corner-bl">]</div>
+        <div class="corner-bracket corner-br">[</div>
+
+        <div class="header">
+            <h1>SENSORAGENT: CONTINUOUS EVENT DETECTION</h1>
+        </div>
+
+        <div class="content">
+            <div class="state-description">
+                <div class="state-box">
+                    <h3>IDLE State</h3>
+                    <ul>
+                        <li>Waits for activation command</li>
+                        <li>Initializes monitoring systems</li>
+                        <li>Transitions to MONITORING</li>
+                    </ul>
+                </div>
+                <div class="state-box">
+                    <h3>MONITORING State</h3>
+                    <ul>
+                        <li>Polls news APIs and user reports</li>
+                        <li>Checks for terrorist attack events</li>
+                        <li>Transitions to ALERT_TRIGGERED</li>
+                    </ul>
+                </div>
+                <div class="state-box">
+                    <h3>ALERT_TRIGGERED State</h3>
+                    <ul>
+                        <li>Creates alert message with details</li>
+                        <li>Sends alert to CoordinatorAgent</li>
+                        <li>Transitions back to MONITORING</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="fsm-diagram">
+                <div class="node">IDLE</div>
+                <div class="arrow">↓</div>
+                <div class="node">MONITORING</div>
+                <div class="arrow">↓</div>
+                <div class="node">ALERT_TRIGGERED</div>
+                <div class="arrow">↺</div>
+                <div style="font-size: 14px; color: #CCCCCC; margin-top: 10px;">Response Time: 2-3s from detection to
+                    alert</div>
+            </div>
+        </div>
+        <div class="watermark">TARS_CORE_SYSTEM_BETA_V1.0 // P.05</div>
+    </div>
+</body>
+
+</html>

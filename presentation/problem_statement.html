@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TARS - Problem Statement</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .slide-container {
+            width: 1280px;
+            min-height: 720px;
+            background: #000000;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            color: #FFFFFF;
+        }
+
+        /* Scanline effect */
+        .slide-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(0deg,
+                    transparent,
+                    transparent 2px,
+                    rgba(0, 255, 255, 0.03) 2px,
+                    rgba(0, 255, 255, 0.03) 4px);
+            pointer-events: none;
+            animation: scanlines 8s linear infinite;
+            z-index: 10;
+        }
+
+        @keyframes scanlines {
+            0% {
+                transform: translateY(0);
+            }
+
+            100% {
+                transform: translateY(10px);
+            }
+        }
+
+        .header {
+            padding: 40px 60px;
+            border-bottom: 2px solid #FF00FF;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header h1 {
+            font-size: 48px;
+            color: #FFFFFF;
+            text-shadow: 2px 0 0 #00FFFF, -2px 0 0 #FF00FF;
+            letter-spacing: 2px;
+        }
+
+        .content {
+            padding: 40px 60px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .content-box {
+            background: rgba(0, 255, 255, 0.05);
+            border-left: 5px solid #00FFFF;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .content h2 {
+            font-size: 28px;
+            color: #00FFFF;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        li {
+            font-size: 24px;
+            margin-bottom: 15px;
+            position: relative;
+            padding-left: 30px;
+        }
+
+        li::before {
+            content: '>';
+            position: absolute;
+            left: 0;
+            color: #FF00FF;
+            font-weight: bold;
+        }
+
+        .solution {
+            margin-top: 40px;
+            padding: 20px;
+            background: rgba(255, 0, 255, 0.1);
+            border: 1px dashed #FF00FF;
+            font-size: 26px;
+            color: #FFFFFF;
+            text-align: center;
+        }
+
+        .corner-bracket {
+            position: absolute;
+            font-size: 40px;
+            z-index: 2;
+        }
+
+        .corner-tl {
+            top: 20px;
+            left: 20px;
+            color: #00FFFF;
+        }
+
+        .corner-tr {
+            top: 20px;
+            right: 20px;
+            color: #FF00FF;
+        }
+
+        .corner-bl {
+            bottom: 20px;
+            left: 20px;
+            color: #FF00FF;
+        }
+
+        .corner-br {
+            bottom: 20px;
+            right: 20px;
+            color: #00FFFF;
+        }
+
+        .watermark {
+            position: absolute;
+            bottom: 40px;
+            right: 60px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="slide-container">
+        <div class="corner-bracket corner-tl">[</div>
+        <div class="corner-bracket corner-tr">]</div>
+        <div class="corner-bracket corner-bl">]</div>
+        <div class="corner-bracket corner-br">[</div>
+
+        <div class="header">
+            <h1 id="title">EMERGENCY RESPONSE UNDER UNCERTAINTY</h1>
+        </div>
+
+        <div class="content">
+            <div class="content-box">
+                <ul>
+                    <li>Information is incomplete and unreliable</li>
+                    <li>Response decisions must be made in milliseconds</li>
+                    <li>Centralized control systems often fail or become overloaded</li>
+                    <li>Multiple agencies must coordinate without direct communication</li>
+                </ul>
+            </div>
+
+            <h2>The Challenge</h2>
+            <ul>
+                <li>Single point of failure can paralyze entire response</li>
+                <li>Communication delays cause critical response delays</li>
+                <li>Rigid hierarchies cannot adapt to dynamic situations</li>
+            </ul>
+
+            <div class="solution">
+                <span style="color: #00FFFF;">SOLUTION:</span> Decentralized multi-agent systems with reactive behaviors
+                enable rapid, autonomous response.
+            </div>
+        </div>
+
+        <div class="watermark">TARS_CORE_SYSTEM_BETA_V1.0 // P.02</div>
+    </div>
+</body>
+
+</html>

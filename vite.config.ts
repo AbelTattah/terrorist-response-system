@@ -179,6 +179,17 @@ export default defineConfig({
       "localhost",
       "127.0.0.1",
     ],
+    proxy: {
+      "/api/simulation": "http://localhost:5000",
+      "/api/agents": "http://localhost:5000",
+      "/api/events": "http://localhost:5000",
+      "/api/traces": "http://localhost:5000",
+      "/api/commands": "http://localhost:5000",
+      "/socket.io": {
+        target: "http://localhost:5000",
+        ws: true,
+      },
+    },
     fs: {
       strict: true,
       deny: ["**/.*"],

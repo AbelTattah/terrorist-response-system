@@ -5,13 +5,25 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import Dashboard from "./pages/Dashboard";
+import CityMap from "./pages/CityMap";
+import FSMVisualizer from "./pages/FSMVisualizer";
+import ExecutionTrace from "./pages/ExecutionTrace";
+import MissileDefense from "./pages/MissileDefense";
+import Education from "./pages/Education";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path="/" component={Home} />
+      <Route path="/dashboard" component={Dashboard} />
+      <Route path="/map" component={CityMap} />
+      <Route path="/fsm" component={FSMVisualizer} />
+      <Route path="/trace" component={ExecutionTrace} />
+      <Route path="/defense" component={MissileDefense} />
+      <Route path="/education" component={Education} />
+      <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
@@ -27,7 +39,7 @@ function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider
-        defaultTheme="light"
+        defaultTheme="dark"
         // switchable
       >
         <TooltipProvider>
