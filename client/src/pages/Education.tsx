@@ -200,7 +200,7 @@ This enables complete auditability and understanding of system behavior.
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
+    <div className="h-full bg-black text-white p-6 overflow-hidden flex flex-col">
       {/* Scanline effect */}
       <div className="fixed inset-0 pointer-events-none opacity-5">
         <div className="absolute inset-0 bg-repeat" style={{
@@ -209,102 +209,78 @@ This enables complete auditability and understanding of system behavior.
         }} />
       </div>
 
-      <div className="relative z-10 max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-12 border-b-2 border-cyan-500 pb-6">
-          <div className="flex items-center gap-3 mb-4">
-            <BookOpen className="w-8 h-8 text-cyan-400" />
-            <h1 className="text-4xl font-bold text-white">EDUCATION CENTER</h1>
+      <div className="relative z-10 flex flex-col h-full gap-6 max-w-5xl mx-auto w-full">
+        {/* Header - Compact */}
+        <div className="border-b-2 border-cyan-500 pb-4 flex flex-col gap-1 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-6 h-6 text-cyan-400" />
+            <h1 className="text-3xl font-bold text-white tracking-widest font-mono uppercase">Education_Terminal</h1>
           </div>
-          <p className="text-cyan-400 text-sm">Learn about FSM, multi-agent systems, and reactive behaviors</p>
+          <p className="text-cyan-400 text-xs font-mono opacity-80 uppercase">Tactical_Theory and decentralized_Response_Models // DOC_ID: TARS_001</p>
         </div>
 
-        {/* Educational Sections */}
-        <div className="space-y-4">
-          {sections.map((section) => (
-            <Card
-              key={section.id}
-              className="bg-gray-900 border-2 border-cyan-500 overflow-hidden"
-            >
-              <button
-                onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
-                className="w-full p-6 flex items-center justify-between hover:bg-gray-800 transition-colors"
+        {/* Educational Content Area - Scrollable */}
+        <div className="flex-1 min-h-0 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent">
+          <div className="space-y-4">
+            {sections.map((section) => (
+              <Card
+                key={section.id}
+                className="bg-gray-900/40 border border-cyan-500/30 overflow-hidden transition-all hover:border-cyan-400/50"
               >
-                <div className="flex items-center gap-4 text-left">
-                  <span className="text-3xl">{section.icon}</span>
-                  <div>
-                    <h2 className="text-xl font-bold text-white font-mono">{section.title}</h2>
+                <button
+                  onClick={() => setExpandedSection(expandedSection === section.id ? null : section.id)}
+                  className="w-full p-4 flex items-center justify-between hover:bg-cyan-500/5 transition-colors group"
+                >
+                  <div className="flex items-center gap-4 text-left">
+                    <span className="text-2xl opacity-80 group-hover:opacity-100 grayscale hover:grayscale-0">{section.icon}</span>
+                    <h2 className="text-sm font-bold text-white font-mono uppercase tracking-widest group-hover:text-cyan-400">{section.title}</h2>
                   </div>
-                </div>
-                <ChevronDown
-                  className={`w-6 h-6 text-cyan-400 transition-transform ${
-                    expandedSection === section.id ? 'rotate-180' : ''
-                  }`}
-                />
-              </button>
+                  <ChevronDown
+                    className={`w-4 h-4 text-cyan-800 transition-transform duration-300 ${expandedSection === section.id ? 'rotate-180 text-cyan-400' : ''
+                      }`}
+                  />
+                </button>
 
-              {expandedSection === section.id && (
-                <div className="px-6 pb-6 border-t border-cyan-500">
-                  <div className="text-gray-300 text-sm whitespace-pre-wrap leading-relaxed font-mono">
-                    {section.content}
+                {expandedSection === section.id && (
+                  <div className="px-5 pb-5 pt-2 border-t border-cyan-500/10 animate-in fade-in slide-in-from-top-1 duration-300">
+                    <div className="text-gray-400 text-[10px] whitespace-pre-wrap leading-relaxed font-mono uppercase tracking-tighter bg-black/40 p-4 rounded border border-cyan-500/5">
+                      {section.content}
+                    </div>
                   </div>
-                </div>
-              )}
-            </Card>
-          ))}
-        </div>
+                )}
+              </Card>
+            ))}
 
-        {/* Key Takeaways */}
-        <div className="mt-12 border-t-2 border-cyan-500 pt-8">
-          <h2 className="text-2xl font-bold text-white mb-6 font-mono">KEY TAKEAWAYS</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card className="bg-gray-900 border border-cyan-500 p-4">
-              <h3 className="text-cyan-400 font-mono text-sm mb-2">FSM Benefits</h3>
-              <ul className="text-xs text-gray-300 space-y-1 font-mono">
-                <li>✓ Predictable behavior</li>
-                <li>✓ Easy to test and debug</li>
-                <li>✓ Clear state transitions</li>
-                <li>✓ Handles complex logic simply</li>
-              </ul>
-            </Card>
-            <Card className="bg-gray-900 border border-cyan-500 p-4">
-              <h3 className="text-cyan-400 font-mono text-sm mb-2">MAS Benefits</h3>
-              <ul className="text-xs text-gray-300 space-y-1 font-mono">
-                <li>✓ Decentralized decision-making</li>
-                <li>✓ Resilience to failures</li>
-                <li>✓ Parallel task execution</li>
-                <li>✓ Scalable architecture</li>
-              </ul>
-            </Card>
-            <Card className="bg-gray-900 border border-cyan-500 p-4">
-              <h3 className="text-cyan-400 font-mono text-sm mb-2">Reactive Behavior</h3>
-              <ul className="text-xs text-gray-300 space-y-1 font-mono">
-                <li>✓ Real-time response</li>
-                <li>✓ Minimal latency</li>
-                <li>✓ No complex planning</li>
-                <li>✓ Immediate action on events</li>
-              </ul>
-            </Card>
-            <Card className="bg-gray-900 border border-cyan-500 p-4">
-              <h3 className="text-cyan-400 font-mono text-sm mb-2">TARS Application</h3>
-              <ul className="text-xs text-gray-300 space-y-1 font-mono">
-                <li>✓ Emergency response</li>
-                <li>✓ Threat detection</li>
-                <li>✓ Resource coordination</li>
-                <li>✓ Automated defense</li>
-              </ul>
-            </Card>
-          </div>
-        </div>
+            {/* Key Takeaways - Compact Grid */}
+            <div className="pt-6 border-t border-cyan-500/20">
+              <h2 className="text-xs font-bold text-cyan-800 mb-4 font-mono uppercase tracking-[0.2em]">Operational_Takeaways</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-8">
+                {[
+                  { title: "FSM_Advantages", list: ["Predictability", "Unit_Testable", "State_Coherence", "Logic_Clarity"] },
+                  { title: "MAS_Strengths", list: ["Decentralization", "Fail_Safe", "Parallel_Execution", "Scalability"] },
+                  { title: "Reactive_Model", list: ["Real_Time", "Low_Latency", "Event_Driven", "Immediate_Action"] },
+                  { title: "System_Utility", list: ["Emergency_Coord", "Threat_Heuristics", "Asset_Optimization", "Auto_Defense"] }
+                ].map((item) => (
+                  <Card key={item.title} className="bg-gray-900/20 border border-cyan-500/10 p-3">
+                    <h3 className="text-cyan-600 font-mono text-[9px] mb-2 uppercase tracking-widest border-b border-cyan-500/5 pb-1">{item.title}</h3>
+                    <ul className="text-[9px] text-gray-600 space-y-1 font-mono uppercase tracking-tighter">
+                      {item.list.map(li => <li key={li}>• {li}</li>)}
+                    </ul>
+                  </Card>
+                ))}
+              </div>
+            </div>
 
-        {/* Further Reading */}
-        <div className="mt-12 p-6 bg-gray-900 border border-cyan-500 rounded">
-          <h3 className="text-cyan-400 font-mono text-sm mb-4">FURTHER READING</h3>
-          <div className="text-xs text-gray-400 space-y-2 font-mono">
-            <div>• Finite State Machines: https://en.wikipedia.org/wiki/Finite-state_machine</div>
-            <div>• Multi-Agent Systems: https://en.wikipedia.org/wiki/Multi-agent_system</div>
-            <div>• SPADE Framework: https://spade-mas.readthedocs.io/</div>
-            <div>• Reactive Systems: https://www.reactivemanifesto.org/</div>
+            {/* Footer - Cipher Links */}
+            <div className="p-4 bg-cyan-950/10 border border-cyan-500/10 rounded mb-4">
+              <h3 className="text-cyan-900 font-mono text-[9px] mb-3 uppercase tracking-widest">External_Reference_Buffer</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 font-mono text-[8px] uppercase tracking-tighter text-cyan-900/60">
+                <a href="https://en.wikipedia.org/wiki/Finite-state_machine" className="hover:text-cyan-400">Finite_State_Machines // HTTP_EXT</a>
+                <a href="https://en.wikipedia.org/wiki/Multi-agent_system" className="hover:text-cyan-400">Multi_Agent_Systems // HTTP_EXT</a>
+                <a href="https://spade-mas.readthedocs.io/" className="hover:text-cyan-400">SPADE_Framework_Documentation // HTTP_EXT</a>
+                <a href="https://www.reactivemanifesto.org/" className="hover:text-cyan-400">Reactive_Systems_Manifesto // HTTP_EXT</a>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -313,6 +289,16 @@ This enables complete auditability and understanding of system behavior.
         @keyframes scanlines {
           0% { transform: translateY(0); }
           100% { transform: translateY(10px); }
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: rgba(0, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
         }
       `}</style>
     </div>

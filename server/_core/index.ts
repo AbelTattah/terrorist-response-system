@@ -36,14 +36,12 @@ async function startServer() {
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
-  // Simulation Proxy with Mock Fallback
-  // Fulfils requirement: "Just make sure the connection is made"
+  // Simulation Proxy - Direct connection to Python backend
   const SIMULATION_BACKEND = "http://localhost:5000";
   const simulationRoutes = ["/api/simulation", "/api/agents", "/api/events", "/api/traces", "/api/commands"];
 
   app.use(simulationRoutes, async (req, res, next) => {
     try {
-      // Import axios dynamically only when needed
       const { default: axios } = await import("axios");
       const targetUrl = `${SIMULATION_BACKEND}${req.originalUrl}`;
 
@@ -52,36 +50,24 @@ async function startServer() {
         url: targetUrl,
         data: req.body,
         params: req.query,
-        timeout: 1000, // Short timeout for fallback detection
+        timeout: 5000, // Sufficient timeout for agent operations
       });
 
       res.status(response.status).json(response.data);
-    } catch (error) {
-      // If backend is down or any other error, fall back to mock data for specific routes
-      if (req.path === "/api/simulation/status") {
-        return res.json({ status: "running (mock)", dome_active: true, events_count: 3, missiles_count: 5, deployments_count: 2, timestamp: new Date().toISOString() });
-      }
-      if (req.path === "/api/agents") {
-        return res.json({
-          agents: [
-            { id: "sensor-1", name: "SensorAgent-1", type: "sensor", state: "MONITORING", status: "active" },
-            { id: "coord-1", name: "CoordinatorAgent-1", type: "coordinator", state: "IDLE", status: "active" },
-            { id: "rescue-1", name: "RescueAgent-1", type: "rescue", state: "IDLE", status: "active" },
-            { id: "dome-1", name: "DomeDefenseAgent-1", type: "dome", state: "TRACKING", status: "active" }
-          ]
+    } catch (error: any) {
+      if (error.response) {
+        // Backend replied with an error
+        res.status(error.response.status).json(error.response.data);
+      } else if (error.request) {
+        // Backend unreachable
+        res.status(503).json({
+          error: "Simulation backend unreachable",
+          details: "Ensure the Python simulation is running on port 5000.",
+          code: "BACKEND_OFFLINE"
         });
+      } else {
+        res.status(500).json({ error: "Proxy internal error", message: error.message });
       }
-      if (req.path === "/api/events") {
-        return res.json({
-          events: [
-            { id: "e1", type: "attack", location: { x: 100, y: 150 }, severity: "high", description: "Suspicious activity detected" },
-            { id: "e2", type: "missile", location: { x: 300, y: 450 }, severity: "critical", description: "Inbound threat detected" }
-          ], total: 2
-        });
-      }
-
-      // For other routes, just pass along the error if no mock exists
-      next();
     }
   });
 

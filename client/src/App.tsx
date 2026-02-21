@@ -12,21 +12,25 @@ import ExecutionTrace from "./pages/ExecutionTrace";
 import MissileDefense from "./pages/MissileDefense";
 import Education from "./pages/Education";
 
+import DashboardLayout from "./components/DashboardLayout";
+
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/dashboard" component={Dashboard} />
-      <Route path="/map" component={CityMap} />
-      <Route path="/fsm" component={FSMVisualizer} />
-      <Route path="/trace" component={ExecutionTrace} />
-      <Route path="/defense" component={MissileDefense} />
-      <Route path="/education" component={Education} />
-      <Route path="/404" component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <DashboardLayout>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/dashboard" component={Dashboard} />
+        <Route path="/map" component={CityMap} />
+        <Route path="/fsm" component={FSMVisualizer} />
+        <Route path="/trace" component={ExecutionTrace} />
+        <Route path="/defense" component={MissileDefense} />
+        <Route path="/education" component={Education} />
+        <Route path="/404" component={NotFound} />
+        {/* Final fallback route */}
+        <Route component={NotFound} />
+      </Switch>
+    </DashboardLayout>
   );
 }
 
@@ -40,7 +44,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="dark"
-        // switchable
+      // switchable
       >
         <TooltipProvider>
           <Toaster />

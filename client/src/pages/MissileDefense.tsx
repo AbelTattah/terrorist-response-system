@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Zap, AlertTriangle } from 'lucide-react';
+import { Zap, AlertTriangle, AlertCircle } from 'lucide-react';
 
 interface Missile {
   id: string;
@@ -36,6 +36,32 @@ export default function MissileDefense() {
     destroyed: 0,
     successRate: 0
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Check backend status
+  useEffect(() => {
+    const checkStatus = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch('/api/simulation/status');
+        if (!response.ok) throw new Error('BACKEND_OFFLINE');
+
+        const data = await response.json();
+        setDomeActive(data.dome_active);
+      } catch (err: any) {
+        console.error('Error fetching defense status:', err);
+        setError('DEFENSE_LINK_FAILURE');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkStatus();
+  }, [retryCount]);
+
   const animationRef = useRef<number | null>(null);
 
   // Animation loop
@@ -285,7 +311,7 @@ export default function MissileDefense() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
+    <div className="h-full bg-black text-white p-6 overflow-hidden flex flex-col">
       {/* Scanline effect */}
       <div className="fixed inset-0 pointer-events-none opacity-5">
         <div className="absolute inset-0 bg-repeat" style={{
@@ -294,130 +320,164 @@ export default function MissileDefense() {
         }} />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 border-b-2 border-cyan-500 pb-4">
-          <h1 className="text-4xl font-bold text-white mb-2">MISSILE DEFENSE SIMULATION</h1>
-          <p className="text-cyan-400 text-sm">Real-time dome defense and interceptor drone animation</p>
+      <div className="relative z-10 flex flex-col h-full gap-6">
+        {/* Header - Compact */}
+        <div className="border-b-2 border-cyan-500 pb-4 flex flex-col gap-1 flex-shrink-0">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-white tracking-widest font-mono uppercase">Missile_Defense_Sim</h1>
+            {error && (
+              <div className="flex items-center gap-2 bg-red-950/40 border border-red-500/50 px-3 py-1 rounded animate-pulse">
+                <AlertCircle className="w-3 h-3 text-red-500" />
+                <span className="text-[10px] text-red-500 font-mono font-bold uppercase tracking-tighter">
+                  DEFENSE_SYNC_LOST: {error}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-2 text-[8px] bg-red-500/10 hover:bg-red-500/20 text-red-400 font-mono border border-red-500/20"
+                  onClick={() => setRetryCount(prev => prev + 1)}
+                >
+                  RE-SYNC
+                </Button>
+              </div>
+            )}
+          </div>
+          <p className="text-cyan-400 text-xs font-mono opacity-80 uppercase">Automated threat interception and kinetic countermeasure simulation // STATUS: {error ? 'SYNCHRONIZATION_REQUIRED' : 'LOCKED'}</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Canvas */}
-          <div className="lg:col-span-3">
-            <Card className="bg-gray-900 border-2 border-cyan-500 p-4">
-              <canvas
-                ref={canvasRef}
-                width={800}
-                height={600}
-                className="w-full border border-cyan-400"
-              />
-              <div className="mt-4 text-xs text-cyan-400 font-mono">
-                <div>Missiles: {missiles.length} | Interceptors: {interceptors.length}</div>
-                <div>Dome Status: {domeActive ? 'ACTIVE' : 'INACTIVE'}</div>
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Simulation Viewport */}
+          <div className="lg:col-span-3 flex flex-col h-full min-h-0">
+            <Card className="bg-gray-900/50 border border-cyan-500/50 p-4 flex-1 flex flex-col min-h-0 overflow-hidden shadow-[0_0_15px_rgba(0,255,255,0.05)]">
+              <div className="flex-1 relative border border-cyan-400/30 overflow-hidden bg-black rounded-sm">
+                <canvas
+                  ref={canvasRef}
+                  width={1200}
+                  height={900}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="mt-4 flex justify-between items-center text-[10px] text-cyan-900 font-mono tracking-tighter shrink-0 uppercase">
+                <div>Trajectory_Nodes: {missiles.length} // Interceptors: {interceptors.length}</div>
+                <div className="flex gap-4">
+                  <span>Logic_Buffer: 0xFFA2</span>
+                  <span>Dome_Coverage: 150u</span>
+                </div>
               </div>
             </Card>
           </div>
 
-          {/* Control Panel */}
-          <div className="space-y-4">
+          {/* Sidebar Controls - Scrolled internally */}
+          <div className="flex flex-col h-full min-h-0 gap-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent">
             {/* Dome Control */}
-            <Card className="bg-gray-900 border-2 border-cyan-500 p-4">
-              <h3 className="font-mono text-cyan-400 text-sm mb-3">DOME CONTROL</h3>
+            <Card className="bg-gray-900/40 border border-cyan-500/30 p-4 shrink-0 transition-all hover:border-cyan-400/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className={`w-3 h-3 ${domeActive ? 'text-cyan-400' : 'text-gray-600'}`} />
+                <h3 className="font-mono text-cyan-400 text-[10px] tracking-widest uppercase">Atmospheric_Shield</h3>
+              </div>
+              <div className="text-xl font-bold text-white mb-3 font-mono tracking-widest">
+                {domeActive ? 'ACTIVE' : 'OFFLINE'}
+              </div>
               <Button
                 onClick={handleActivateDome}
-                className={`w-full font-mono text-xs ${
-                  domeActive
-                    ? 'bg-red-600 hover:bg-red-700'
-                    : 'bg-cyan-600 hover:bg-cyan-700'
-                }`}
+                className={`w-full font-mono text-[10px] h-8 tracking-widest uppercase border ${domeActive
+                  ? 'bg-red-950/20 border-red-500/50 hover:bg-red-500/30 text-red-400'
+                  : 'bg-cyan-950/20 border-cyan-500/50 hover:bg-cyan-500/30 text-cyan-400'
+                  }`}
               >
-                {domeActive ? 'DEACTIVATE' : 'ACTIVATE'}
+                {domeActive ? 'Kill_Power' : 'Energize'}
               </Button>
             </Card>
 
-            {/* Missile Launch */}
-            <Card className="bg-gray-900 border-2 border-magenta-500 p-4">
-              <h3 className="font-mono text-magenta-400 text-sm mb-3">THREAT SIMULATION</h3>
+            {/* Simulated Threat */}
+            <Card className="bg-gray-900/40 border border-magenta-500/30 p-4 shrink-0 transition-all hover:border-magenta-400/50">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle className="w-3 h-3 text-magenta-400" />
+                <h3 className="font-mono text-magenta-400 text-[10px] tracking-widest uppercase">Inject_Threat</h3>
+              </div>
               <Button
                 onClick={handleLaunchMissile}
-                className="w-full bg-magenta-600 hover:bg-magenta-700 text-white font-mono text-xs"
+                className="w-full bg-magenta-950/20 border border-magenta-500/50 hover:bg-magenta-500/30 text-magenta-400 font-mono text-[10px] h-8 tracking-widest uppercase"
               >
-                Launch Missile
+                Trig_Launch
               </Button>
             </Card>
 
-            {/* Manual Intercept */}
-            <Card className="bg-gray-900 border-2 border-green-500 p-4">
-              <h3 className="font-mono text-green-400 text-sm mb-3">MANUAL CONTROL</h3>
+            {/* Manual Logic Override */}
+            <Card className="bg-gray-900/40 border border-green-500/30 p-4 shrink-0 transition-all hover:border-green-400/50">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-3 h-3 text-green-400" />
+                <h3 className="font-mono text-green-400 text-[10px] tracking-widest uppercase">Logic_Override</h3>
+              </div>
               <Button
                 onClick={handleInterceptMissile}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-mono text-xs"
+                className="w-full bg-green-950/20 border border-green-500/50 hover:bg-green-500/30 text-green-400 font-mono text-[10px] h-8 tracking-widest uppercase"
               >
-                Intercept Missile
+                Force_Intercept
               </Button>
             </Card>
 
-            {/* Statistics */}
-            <Card className="bg-gray-900 border-2 border-cyan-500 p-4">
-              <h3 className="font-mono text-cyan-400 text-sm mb-4">STATISTICS</h3>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Incoming:</span>
-                  <span className="text-red-400 font-bold">{stats.incoming}</span>
+            {/* Real-time Telemetry */}
+            <Card className="bg-gray-900/40 border border-cyan-500/10 p-4 shrink-0">
+              <h3 className="font-mono text-cyan-800 text-[10px] tracking-widest mb-4 uppercase">Telemetry_Buffer</h3>
+              <div className="space-y-2 font-mono text-[10px] uppercase tracking-tighter">
+                <div className="flex justify-between border-b border-white/5 pb-1">
+                  <span className="text-gray-600">Incoming:</span>
+                  <span className="text-red-600 font-bold">{stats.incoming}</span>
+                </div>
+                <div className="flex justify-between border-b border-white/5 pb-1">
+                  <span className="text-gray-600">Neutralized:</span>
+                  <span className="text-green-600 font-bold">{stats.intercepted}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Intercepted:</span>
-                  <span className="text-green-400 font-bold">{stats.intercepted}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Success Rate:</span>
-                  <span className="text-cyan-400 font-bold">{stats.successRate}%</span>
+                  <span className="text-gray-600">Clearance:</span>
+                  <span className="text-cyan-600 font-bold">{stats.successRate}%</span>
                 </div>
               </div>
             </Card>
 
-            {/* Legend */}
-            <Card className="bg-gray-900 border border-cyan-500 p-4">
-              <h3 className="font-mono text-cyan-400 text-sm mb-3">LEGEND</h3>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-magenta-500 rounded-full"></div>
-                  <span>Missile</span>
+            {/* Tactical Legend - Compact */}
+            <Card className="bg-gray-900/40 border border-cyan-500/10 p-3 mt-auto shadow-inner">
+              <h3 className="font-mono text-cyan-800 text-[9px] tracking-widest mb-2 uppercase">Symbol_Cipher</h3>
+              <div className="grid grid-cols-2 gap-y-1.5 gap-x-1 text-[9px] font-mono tracking-tighter uppercase">
+                <div className="flex items-center gap-1.5 opacity-80">
+                  <div className="w-1.5 h-1.5 bg-magenta-500 rounded-full shadow-[0_0_5px_rgba(255,0,255,0.5)]"></div>
+                  <span>Projectile</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                <div className="flex items-center gap-1.5 opacity-80">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div>
                   <span>Interceptor</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 border-2 border-cyan-400"></div>
-                  <span>Dome Coverage</span>
+                <div className="flex items-center gap-1.5 opacity-80">
+                  <div className="w-1.5 h-1.5 border border-cyan-400"></div>
+                  <span>Dome</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <span>Explosion</span>
+                <div className="flex items-center gap-1.5 opacity-80">
+                  <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full shadow-[0_0_5px_rgba(234,179,8,0.5)]"></div>
+                  <span>Kinetic</span>
                 </div>
               </div>
             </Card>
           </div>
         </div>
 
-        {/* Information Panel */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="bg-gray-900 border border-cyan-500 p-4">
-            <Zap className="w-5 h-5 text-cyan-400 mb-2" />
-            <h3 className="font-mono text-cyan-400 text-sm mb-2">DOME SYSTEM</h3>
-            <p className="text-gray-400 text-xs">Protective energy dome with 150-unit radius coverage. Automatically intercepts incoming threats.</p>
-          </Card>
-          <Card className="bg-gray-900 border border-cyan-500 p-4">
-            <AlertTriangle className="w-5 h-5 text-yellow-400 mb-2" />
-            <h3 className="font-mono text-yellow-400 text-sm mb-2">INTERCEPTORS</h3>
-            <p className="text-gray-400 text-xs">Autonomous drone interceptors track and neutralize incoming missiles with precision targeting.</p>
-          </Card>
-          <Card className="bg-gray-900 border border-cyan-500 p-4">
-            <Zap className="w-5 h-5 text-green-400 mb-2" />
-            <h3 className="font-mono text-green-400 text-sm mb-2">RESPONSE TIME</h3>
-            <p className="text-gray-400 text-xs">Real-time threat detection and automated response. Average interception time: &lt;2 seconds.</p>
-          </Card>
+        {/* Global System Info - Compact */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-2">
+          {[
+            { icon: Zap, color: "text-cyan-400", title: "Atmospheric_Shell", desc: "Energy-derived kinetic barrier with spatial synchronization logic." },
+            { icon: AlertTriangle, color: "text-yellow-400", title: "Deep_Space_Tracking", desc: "Autonomous drone nodes leveraging predictive heuristic intercept models." },
+            { icon: Zap, color: "text-green-400", title: "Interception_Delta", desc: "Real-time threat arbitration with sub-second response latency profiles." }
+          ].map((item, i) => (
+            <Card key={i} className="bg-gray-900/20 border border-cyan-500/10 p-3 transition-all hover:border-cyan-500/30">
+              <div className="flex items-center gap-3">
+                <item.icon className={`w-4 h-4 ${item.color} shrink-0`} />
+                <div className="min-w-0">
+                  <h3 className="font-mono text-cyan-800 text-[9px] tracking-widest uppercase truncate">{item.title}</h3>
+                  <p className="text-gray-600 text-[8px] tracking-tighter uppercase leading-tight line-clamp-2">{item.desc}</p>
+                </div>
+              </div>
+            </Card>
+          ))}
         </div>
       </div>
 
@@ -425,6 +485,16 @@ export default function MissileDefense() {
         @keyframes scanlines {
           0% { transform: translateY(0); }
           100% { transform: translateY(10px); }
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: rgba(0, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
         }
       `}</style>
     </div>

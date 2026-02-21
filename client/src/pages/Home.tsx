@@ -46,7 +46,7 @@ export default function Home() {
             <p className="text-gray-400 text-lg mb-8 font-mono">
               Decentralized Multi-Agent Defense Network
             </p>
-            
+
             {/* Divider */}
             <div className="w-64 h-1 bg-gradient-to-r from-cyan-500 via-magenta-500 to-cyan-500 mx-auto mb-8"></div>
           </div>
@@ -94,85 +94,7 @@ export default function Home() {
         </div>
 
         {/* Features Section */}
-        {isAuthenticated && (
-          <div className="py-20 px-4 border-t-2 border-cyan-500">
-            <div className="max-w-6xl mx-auto">
-              <h2 className="text-4xl font-bold text-center mb-12 font-mono" style={{
-                textShadow: '0 0 10px rgba(0, 255, 255, 0.6)'
-              }}>
-                SYSTEM MODULES
-              </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {/* Dashboard */}
-                <Card className="bg-gray-900 border-2 border-cyan-500 p-6 hover:border-cyan-300 transition-all cursor-pointer"
-                  onClick={() => setLocation('/dashboard')}>
-                  <Shield className="w-8 h-8 text-cyan-400 mb-4" />
-                  <h3 className="text-xl font-bold text-white mb-2 font-mono">COMMAND CENTER</h3>
-                  <p className="text-gray-400 text-sm mb-4">Real-time system status, agent monitoring, and command controls</p>
-                  <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-xs">
-                    Access Dashboard
-                  </Button>
-                </Card>
-
-                {/* City Map */}
-                <Card className="bg-gray-900 border-2 border-cyan-500 p-6 hover:border-cyan-300 transition-all cursor-pointer"
-                  onClick={() => setLocation('/map')}>
-                  <Map className="w-8 h-8 text-cyan-400 mb-4" />
-                  <h3 className="text-xl font-bold text-white mb-2 font-mono">CITY MAP</h3>
-                  <p className="text-gray-400 text-sm mb-4">Interactive visualization of threats, deployments, and defense coverage</p>
-                  <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-xs">
-                    View Map
-                  </Button>
-                </Card>
-
-                {/* FSM Visualizer */}
-                <Card className="bg-gray-900 border-2 border-cyan-500 p-6 hover:border-cyan-300 transition-all cursor-pointer"
-                  onClick={() => setLocation('/fsm')}>
-                  <Zap className="w-8 h-8 text-cyan-400 mb-4" />
-                  <h3 className="text-xl font-bold text-white mb-2 font-mono">FSM VISUALIZER</h3>
-                  <p className="text-gray-400 text-sm mb-4">Finite state machine visualization and reactive behavior demonstration</p>
-                  <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-xs">
-                    View FSM
-                  </Button>
-                </Card>
-
-                {/* Execution Trace */}
-                <Card className="bg-gray-900 border-2 border-cyan-500 p-6 hover:border-cyan-300 transition-all cursor-pointer"
-                  onClick={() => setLocation('/trace')}>
-                  <FileText className="w-8 h-8 text-cyan-400 mb-4" />
-                  <h3 className="text-xl font-bold text-white mb-2 font-mono">EXECUTION TRACE</h3>
-                  <p className="text-gray-400 text-sm mb-4">Detailed log of agent decisions, state transitions, and system actions</p>
-                  <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-xs">
-                    View Traces
-                  </Button>
-                </Card>
-
-                {/* Educational Content */}
-                <Card className="bg-gray-900 border-2 border-cyan-500 p-6 hover:border-cyan-300 transition-all cursor-pointer"
-                  onClick={() => setLocation('/education')}>
-                  <BookOpen className="w-8 h-8 text-cyan-400 mb-4" />
-                  <h3 className="text-xl font-bold text-white mb-2 font-mono">EDUCATION</h3>
-                  <p className="text-gray-400 text-sm mb-4">Learn about FSM concepts, agent patterns, and reactive behaviors</p>
-                  <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-xs">
-                    View Education
-                  </Button>
-                </Card>
-
-                {/* Missile Defense Simulation */}
-                <Card className="bg-gray-900 border-2 border-cyan-500 p-6 hover:border-cyan-300 transition-all cursor-pointer"
-                  onClick={() => setLocation('/defense')}>
-                  <Zap className="w-8 h-8 text-cyan-400 mb-4" />
-                  <h3 className="text-xl font-bold text-white mb-2 font-mono">MISSILE DEFENSE</h3>
-                  <p className="text-gray-400 text-sm mb-4">Real-time dome defense and interceptor drone animation</p>
-                  <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-xs">
-                    View Simulation
-                  </Button>
-                </Card>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Footer */}
         <div className="border-t border-cyan-500 py-8 px-4 text-center text-gray-500 font-mono text-xs">

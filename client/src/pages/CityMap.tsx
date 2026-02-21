@@ -14,6 +14,40 @@ export default function CityMap() {
   const [missiles, setMissiles] = useState<any[]>([]);
   const [domeActive, setDomeActive] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
+  // Fetch initial data
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const [statusRes, eventsRes] = await Promise.all([
+          fetch('/api/simulation/status'),
+          fetch('/api/events')
+        ]);
+
+        if (!statusRes.ok || !eventsRes.ok) {
+          throw new Error('SYSTEM_OFFLINE');
+        }
+
+        const statusData = await statusRes.json();
+        const eventsData = await eventsRes.json();
+
+        setDomeActive(statusData.dome_active);
+        setEvents(eventsData.events || []);
+      } catch (err: any) {
+        console.error('Error fetching map data:', err);
+        setError('SYSTEM_BACKEND_OFFLINE');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [retryCount]);
 
   // Simulate canvas drawing
   useEffect(() => {
@@ -70,8 +104,8 @@ export default function CityMap() {
       const y = (event.location.y % 1000) * (canvas.height / 1000);
 
       // Event marker
-      const color = event.severity === 'critical' ? '#ff0000' : 
-                   event.severity === 'high' ? '#ff6600' : '#ffff00';
+      const color = event.severity === 'critical' ? '#ff0000' :
+        event.severity === 'high' ? '#ff6600' : '#ffff00';
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(x, y, 8, 0, Math.PI * 2);
@@ -172,14 +206,14 @@ export default function CityMap() {
 
     // Auto-intercept after 2 seconds
     setTimeout(() => {
-      setMissiles(prev => prev.map(m => 
+      setMissiles(prev => prev.map(m =>
         m.id === missile.id ? { ...m, status: 'intercepted' } : m
       ));
     }, 2000);
   };
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
+    <div className="h-full bg-black text-white p-6 overflow-hidden flex flex-col">
       {/* Scanline effect */}
       <div className="fixed inset-0 pointer-events-none opacity-5">
         <div className="absolute inset-0 bg-repeat" style={{
@@ -188,123 +222,140 @@ export default function CityMap() {
         }} />
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 border-b-2 border-cyan-500 pb-4">
-          <h1 className="text-4xl font-bold text-white mb-2">CITY MAP</h1>
-          <p className="text-cyan-400 text-sm">Real-time threat visualization and response coordination</p>
+      <div className="relative z-10 flex flex-col h-full gap-6">
+        {/* Header - Compact */}
+        <div className="border-b-2 border-cyan-500 pb-4 flex flex-col gap-1 flex-shrink-0">
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold text-white tracking-widest font-mono">CITY_TACTICAL_MAP</h1>
+            {error && (
+              <div className="flex items-center gap-2 bg-red-950/40 border border-red-500/50 px-3 py-1 rounded animate-pulse">
+                <AlertCircle className="w-3 h-3 text-red-500" />
+                <span className="text-[10px] text-red-500 font-mono font-bold uppercase tracking-tighter">
+                  GRID_SYNC_ERROR: {error}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 px-2 text-[8px] bg-red-500/10 hover:bg-red-500/20 text-red-400 font-mono border border-red-500/20"
+                  onClick={() => setRetryCount(prev => prev + 1)}
+                >
+                  RE-SYNC
+                </Button>
+              </div>
+            )}
+          </div>
+          <p className="text-cyan-400 text-xs font-mono opacity-80">Real-time threat visualization and response coordination // GRID_SYNC: {error ? 'LOST' : 'ACTIVE'}</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Map Canvas */}
-          <div className="lg:col-span-3">
-            <Card className="bg-gray-900 border-2 border-cyan-500 p-4">
-              <canvas
-                ref={canvasRef}
-                width={800}
-                height={600}
-                className="w-full border border-cyan-400"
-              />
-              <div className="mt-4 text-xs text-cyan-400 font-mono">
-                <div>Grid: 1000x1000 units</div>
-                <div>Dome Radius: 200 units</div>
-                <div>Events: {events.length} | Deployments: {deployments.length} | Missiles: {missiles.length}</div>
+        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Map Canvas - Flexing to fill space */}
+          <div className="lg:col-span-3 flex flex-col h-full min-h-0">
+            <Card className="bg-gray-900/50 border border-cyan-500/50 p-4 flex-1 flex flex-col min-h-0 overflow-hidden shadow-[0_0_15px_rgba(0,255,255,0.05)]">
+              <div className="flex-1 relative border border-cyan-400/30 overflow-hidden bg-black">
+                <canvas
+                  ref={canvasRef}
+                  width={1200}
+                  height={900}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="mt-4 flex justify-between items-center text-[10px] text-cyan-900 font-mono tracking-tighter shrink-0 uppercase">
+                <div>Grid_System: 1000x1000u // Dome_R: 200u</div>
+                <div className="flex gap-4">
+                  <span>Targets: {events.length}</span>
+                  <span>Units: {deployments.length}</span>
+                  <span>Projectiles: {missiles.length}</span>
+                </div>
               </div>
             </Card>
           </div>
 
-          {/* Control Panel */}
-          <div className="space-y-4">
+          {/* Control Panel - Scrolled internally if needed */}
+          <div className="flex flex-col h-full min-h-0 gap-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent">
             {/* Dome Status */}
-            <Card className="bg-gray-900 border-2 border-cyan-500 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-mono text-cyan-400 text-sm">DOME STATUS</h3>
+            <Card className="bg-gray-900/40 border border-cyan-500/30 p-4 shrink-0 transition-all hover:border-cyan-400/50">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-3 h-3 text-cyan-400" />
+                <h3 className="font-mono text-cyan-400 text-[10px] tracking-widest uppercase">Shield_Status</h3>
               </div>
-              <div className="text-2xl font-bold text-white mb-3">
-                {domeActive ? 'ACTIVE' : 'INACTIVE'}
+              <div className="text-xl font-bold text-white mb-3 font-mono">
+                {domeActive ? 'ACTIVE' : 'OFFLINE'}
               </div>
               <Button
                 onClick={() => setDomeActive(!domeActive)}
-                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-xs"
+                className="w-full bg-cyan-950/20 border border-cyan-500/50 hover:bg-cyan-500/30 text-cyan-400 font-mono text-[10px] h-8 tracking-widest uppercase"
               >
                 {domeActive ? 'Deactivate' : 'Activate'}
               </Button>
             </Card>
 
             {/* Event Controls */}
-            <Card className="bg-gray-900 border-2 border-magenta-500 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <AlertCircle className="w-5 h-5 text-magenta-400" />
-                <h3 className="font-mono text-magenta-400 text-sm">EVENTS</h3>
+            <Card className="bg-gray-900/40 border border-magenta-500/30 p-4 shrink-0 transition-all hover:border-magenta-400/50">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="w-3 h-3 text-magenta-400" />
+                <h3 className="font-mono text-magenta-400 text-[10px] tracking-widest uppercase">Threat_Vector</h3>
               </div>
-              <div className="text-sm text-white mb-3">
+              <div className="text-[10px] text-white mb-3 font-mono bg-black/40 p-2 border border-magenta-500/10 min-h-[40px]">
                 {selectedEvent ? (
-                  <div className="text-xs">
-                    <div>Type: {selectedEvent.type}</div>
-                    <div>Severity: {selectedEvent.severity}</div>
-                    <div>Loc: ({selectedEvent.location.x.toFixed(0)}, {selectedEvent.location.y.toFixed(0)})</div>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex justify-between"><span>TYPE:</span> <span className="text-magenta-400">{selectedEvent.type.toUpperCase()}</span></div>
+                    <div className="flex justify-between"><span>LVL:</span> <span className="text-magenta-400">{selectedEvent.severity.toUpperCase()}</span></div>
+                    <div className="flex justify-between"><span>COORD:</span> <span className="text-magenta-400">[{selectedEvent.location.x.toFixed(0)}, {selectedEvent.location.y.toFixed(0)}]</span></div>
                   </div>
                 ) : (
-                  <div className="text-gray-400">No event selected</div>
+                  <div className="text-gray-600 italic uppercase tracking-tighter text-[9px] h-full flex items-center justify-center">No active selection</div>
                 )}
               </div>
               <Button
                 onClick={handleSimulateEvent}
-                className="w-full bg-magenta-600 hover:bg-magenta-700 text-white font-mono text-xs"
+                className="w-full bg-magenta-950/20 border border-magenta-500/50 hover:bg-magenta-500/30 text-magenta-400 font-mono text-[10px] h-8 tracking-widest uppercase"
               >
-                Simulate Event
+                Infect_Threat
               </Button>
             </Card>
 
-            {/* Deployment Controls */}
-            <Card className="bg-gray-900 border-2 border-green-500 p-4">
+            {/* Action Panel */}
+            <Card className="bg-gray-900/40 border border-cyan-500/30 p-4 shrink-0 transition-all hover:border-cyan-400/50">
               <div className="flex items-center gap-2 mb-3">
-                <Zap className="w-5 h-5 text-green-400" />
-                <h3 className="font-mono text-green-400 text-sm">DEPLOY</h3>
+                <Zap className="w-3 h-3 text-green-400" />
+                <h3 className="font-mono text-cyan-400 text-[10px] tracking-widest uppercase">Deployment</h3>
               </div>
-              <Button
-                onClick={handleDeployTroops}
-                disabled={!selectedEvent}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-mono text-xs disabled:opacity-50"
-              >
-                Deploy Troops
-              </Button>
+              <div className="grid grid-cols-1 gap-2">
+                <Button
+                  onClick={handleDeployTroops}
+                  disabled={!selectedEvent}
+                  className="w-full bg-green-950/20 border border-green-500/50 hover:bg-green-500/30 text-green-400 font-mono text-[10px] h-8 tracking-widest uppercase disabled:opacity-20"
+                >
+                  Deploy_Unit
+                </Button>
+                <Button
+                  onClick={handleSimulateMissile}
+                  className="w-full bg-red-950/20 border border-red-500/50 hover:bg-red-500/30 text-red-400 font-mono text-[10px] h-8 tracking-widest uppercase"
+                >
+                  Trig_Missile
+                </Button>
+              </div>
             </Card>
 
-            {/* Missile Controls */}
-            <Card className="bg-gray-900 border-2 border-red-500 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Crosshair className="w-5 h-5 text-red-400" />
-                <h3 className="font-mono text-red-400 text-sm">MISSILES</h3>
-              </div>
-              <Button
-                onClick={handleSimulateMissile}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-mono text-xs"
-              >
-                Simulate Missile
-              </Button>
-            </Card>
-
-            {/* Legend */}
-            <Card className="bg-gray-900 border border-cyan-500 p-4">
-              <h3 className="font-mono text-cyan-400 text-sm mb-3">LEGEND</h3>
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span>Critical Event</span>
+            {/* Legend - Compact */}
+            <Card className="bg-gray-900/40 border border-cyan-500/10 p-3 mt-auto shadow-inner">
+              <h3 className="font-mono text-cyan-800 text-[9px] tracking-widest mb-2 uppercase">Protocol_Legend</h3>
+              <div className="grid grid-cols-2 gap-y-1.5 gap-x-1 text-[9px] font-mono tracking-tighter uppercase">
+                <div className="flex items-center gap-1.5 opacity-80">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.5)]"></div>
+                  <span>Threat</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-500"></div>
-                  <span>Deployment</span>
+                <div className="flex items-center gap-1.5 opacity-80">
+                  <div className="w-1.5 h-1.5 bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div>
+                  <span>Unit</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-magenta-500 rounded-full"></div>
+                <div className="flex items-center gap-1.5 opacity-80">
+                  <div className="w-1.5 h-1.5 bg-magenta-500 rounded-full shadow-[0_0_5px_rgba(255,0,255,0.5)]"></div>
                   <span>Missile</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 border-2 border-cyan-400"></div>
-                  <span>Dome Coverage</span>
+                <div className="flex items-center gap-1.5 opacity-80">
+                  <div className="w-1.5 h-1.5 border border-cyan-400"></div>
+                  <span>Dome</span>
                 </div>
               </div>
             </Card>
@@ -316,6 +367,16 @@ export default function CityMap() {
         @keyframes scanlines {
           0% { transform: translateY(0); }
           100% { transform: translateY(10px); }
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background: rgba(0, 255, 255, 0.05);
+          border-radius: 10px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
         }
       `}</style>
     </div>
