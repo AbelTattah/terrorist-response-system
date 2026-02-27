@@ -19,7 +19,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { getLoginUrl } from "@/const";
+
 import { useIsMobile } from "@/hooks/useMobile";
 import {
   LayoutDashboard,
@@ -71,31 +71,6 @@ export default function DashboardLayout({
     return <DashboardLayoutSkeleton />
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black">
-        <div className="flex flex-col items-center gap-8 p-8 max-w-md w-full">
-          <div className="flex flex-col items-center gap-6">
-            <h1 className="text-2xl font-semibold tracking-tight text-center text-white">
-              TARS COMMAND CENTER
-            </h1>
-            <p className="text-sm text-cyan-400 text-center max-w-sm">
-              Access to this terminal requires authentication. Continue to launch the login flow.
-            </p>
-          </div>
-          <Button
-            onClick={() => {
-              window.location.href = getLoginUrl();
-            }}
-            size="lg"
-            className="w-full bg-cyan-600 hover:bg-cyan-700 text-white shadow-lg hover:shadow-cyan-500/20 transition-all font-mono"
-          >
-            INITIALIZE CONNECTION
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <SidebarProvider

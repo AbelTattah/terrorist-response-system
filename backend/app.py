@@ -8,6 +8,7 @@ import asyncio
 import logging
 from datetime import datetime
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from dotenv import load_dotenv
 from agents.agent_manager import AgentManager
@@ -26,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize Flask app
 app = Flask(__name__)
+CORS(app)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'tars-secret-key-dev')
 app.config['JSON_SORT_KEYS'] = False
 

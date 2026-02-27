@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Loader2, Shield, Map, Zap, FileText, BookOpen } from "lucide-react";
 import { useLocation } from "wouter";
-import { getLoginUrl } from "@/const";
+
 
 /**
  * Home Page - TARS System Landing Page
@@ -71,26 +71,14 @@ export default function Home() {
           </div>
 
           {/* Authentication */}
-          {!isAuthenticated ? (
-            <div className="mb-12">
-              <Button
-                onClick={() => window.location.href = getLoginUrl()}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-lg px-8 py-3 border-2 border-cyan-400"
-              >
-                INITIALIZE SYSTEM
-              </Button>
-            </div>
-          ) : (
-            <div className="mb-12 text-center">
-              <p className="text-cyan-400 font-mono mb-4">Welcome, {user?.name}</p>
-              <Button
-                onClick={() => setLocation('/dashboard')}
-                className="bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-lg px-8 py-3 border-2 border-cyan-400"
-              >
-                ENTER COMMAND CENTER
-              </Button>
-            </div>
-          )}
+          <div className="mb-12 text-center">
+            <Button
+              onClick={() => setLocation('/dashboard')}
+              className="bg-cyan-600 hover:bg-cyan-700 text-white font-mono text-lg px-8 py-3 border-2 border-cyan-400"
+            >
+              ENTER COMMAND CENTER
+            </Button>
+          </div>
         </div>
 
         {/* Features Section */}

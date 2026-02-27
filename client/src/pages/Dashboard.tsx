@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { AlertCircle, Radar, Shield, Zap } from 'lucide-react';
 import VoiceControl from '@/components/VoiceControl';
-import { getLoginUrl } from '@/const';
+
 
 /**
  * Main Dashboard - Retro-futuristic TARS system interface
@@ -44,23 +44,6 @@ export default function Dashboard() {
     }
   }, [retryCount, isAuthenticated]);
 
-  if (!isAuthenticated) {
-    return (
-      <div className="h-full flex items-center justify-center bg-black">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold text-white mb-4 font-mono tracking-tighter">TARS SYSTEM</h1>
-          <p className="text-cyan-400 mb-8 font-mono text-sm opacity-70">Terrorist Attack Response System</p>
-          <Button
-            variant="default"
-            className="bg-cyan-600 hover:bg-cyan-700 text-white font-mono"
-            onClick={() => window.location.href = getLoginUrl()}
-          >
-            INITIALIZE CONNECTION
-          </Button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-full bg-black text-white p-6 overflow-hidden flex flex-col">
