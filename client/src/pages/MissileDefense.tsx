@@ -133,39 +133,57 @@ export default function MissileDefense() {
         const y = missile.y + (missile.targetY - missile.y) * missile.progress;
 
         if (missile.status === 'incoming') {
-          // Missile body
-          ctx.fillStyle = '#ff00ff';
+          // Draw faint path
+          ctx.strokeStyle = 'rgba(255, 0, 255, 0.1)';
           ctx.beginPath();
-          ctx.arc(x, y, 6, 0, Math.PI * 2);
-          ctx.fill();
+          ctx.moveTo(missile.x, missile.y);
+          ctx.lineTo(missile.targetX, missile.targetY);
+          ctx.stroke();
 
           // Missile trail
-          ctx.strokeStyle = '#ff00ff80';
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = 'rgba(255, 0, 255, 0.8)';
+          ctx.lineWidth = 3;
           ctx.beginPath();
-          ctx.arc(x, y, 12, 0, Math.PI * 2);
+          const trailLen = Math.max(0, missile.progress - 0.2);
+          const trailX = missile.x + (missile.targetX - missile.x) * trailLen;
+          const trailY = missile.y + (missile.targetY - missile.y) * trailLen;
+          ctx.moveTo(trailX, trailY);
+          ctx.lineTo(x, y);
           ctx.stroke();
 
-          // Direction indicator
+          // Direction indicator (Triangle)
           const angle = Math.atan2(missile.targetY - missile.y, missile.targetX - missile.x);
-          ctx.strokeStyle = '#ff00ff';
-          ctx.lineWidth = 1;
+          ctx.fillStyle = '#ff00ff';
           ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x + Math.cos(angle) * 20, y + Math.sin(angle) * 20);
-          ctx.stroke();
-        } else if (missile.status === 'intercepted') {
-          // Explosion effect
-          ctx.fillStyle = `rgba(255, 255, 0, ${0.5 - missile.progress * 0.5})`;
-          ctx.beginPath();
-          ctx.arc(x, y, 20 + missile.progress * 10, 0, Math.PI * 2);
+          ctx.moveTo(x + Math.cos(angle) * 10, y + Math.sin(angle) * 10);
+          ctx.lineTo(x + Math.cos(angle + Math.PI * 0.75) * 8, y + Math.sin(angle + Math.PI * 0.75) * 8);
+          ctx.lineTo(x + Math.cos(angle - Math.PI * 0.75) * 8, y + Math.sin(angle - Math.PI * 0.75) * 8);
           ctx.fill();
 
-          ctx.strokeStyle = `rgba(255, 165, 0, ${0.5 - missile.progress * 0.5})`;
+          // Text
+          ctx.fillStyle = '#ff00ff';
+          ctx.font = 'bold 10px monospace';
+          ctx.fillText('MISSILE_INCOMING', x + 15, y - 10);
+        } else if (missile.status === 'intercepted') {
+          const expProgress = missile.progress - 1; // From 0 onwards when intercepted
+          const opacity = Math.max(0, 1 - expProgress * 1.5);
+
+          // Explosion effect
+          ctx.fillStyle = `rgba(255, 255, 0, ${opacity * 0.8})`;
+          ctx.beginPath();
+          ctx.arc(x, y, 20 + expProgress * 60, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = `rgba(255, 100, 0, ${opacity})`;
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.arc(x, y, 30 + missile.progress * 15, 0, Math.PI * 2);
+          ctx.arc(x, y, 30 + expProgress * 80, 0, Math.PI * 2);
           ctx.stroke();
+
+          // Text
+          ctx.fillStyle = `rgba(0, 255, 0, ${opacity})`;
+          ctx.font = 'bold 12px monospace';
+          ctx.fillText('INTERCEPTED', x + 25, y);
         }
       });
 

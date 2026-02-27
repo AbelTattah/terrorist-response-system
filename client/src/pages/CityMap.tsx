@@ -136,28 +136,64 @@ export default function CityMap() {
 
     // Draw missiles
     missiles.forEach((missile) => {
-      const x = (missile.location.x % 1000) * (canvas.width / 1000);
-      const y = (missile.location.y % 1000) * (canvas.height / 1000);
+      const startX = (missile.location.x % 1000) * (canvas.width / 1000);
+      const startY = (missile.location.y % 1000) * (canvas.height / 1000);
+      const targetX = missile.target ? (missile.target.x % 1000) * (canvas.width / 1000) : canvas.width / 2;
+      const targetY = missile.target ? (missile.target.y % 1000) * (canvas.height / 1000) : canvas.height / 2;
+      const progress = missile.progress !== undefined ? missile.progress : 1;
+
+      const x = startX + (targetX - startX) * progress;
+      const y = startY + (targetY - startY) * progress;
 
       if (missile.status === 'incoming') {
-        // Missile marker
+        // Draw path line (faint)
+        ctx.strokeStyle = 'rgba(255, 0, 255, 0.2)';
+        ctx.beginPath();
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
+
+        // Draw trail behind missile
+        ctx.strokeStyle = 'rgba(255, 0, 255, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        const trailLen = Math.max(0, progress - 0.2); // length of trail length
+        const trailX = startX + (targetX - startX) * trailLen;
+        const trailY = startY + (targetY - startY) * trailLen;
+        ctx.moveTo(trailX, trailY);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+
+        // Missile marker (triangle)
+        const angle = Math.atan2(targetY - startY, targetX - startX);
         ctx.fillStyle = '#ff00ff';
         ctx.beginPath();
-        ctx.arc(x, y, 6, 0, Math.PI * 2);
+        ctx.moveTo(x + Math.cos(angle) * 10, y + Math.sin(angle) * 10);
+        ctx.lineTo(x + Math.cos(angle + Math.PI * 0.75) * 8, y + Math.sin(angle + Math.PI * 0.75) * 8);
+        ctx.lineTo(x + Math.cos(angle - Math.PI * 0.75) * 8, y + Math.sin(angle - Math.PI * 0.75) * 8);
         ctx.fill();
 
-        // Missile trail
-        ctx.strokeStyle = '#ff00ff80';
+        ctx.fillStyle = '#ff00ff';
+        ctx.font = 'bold 10px monospace';
+        ctx.fillText('MISSILE_INCOMING', x + 15, y - 10);
+      } else if (missile.status === 'intercepted') {
+        const expProgress = progress > 1 ? progress - 1 : 0;
+        const opacity = Math.max(0, 1 - expProgress * 1.5);
+
+        ctx.fillStyle = `rgba(255, 255, 0, ${opacity * 0.8})`;
+        ctx.beginPath();
+        ctx.arc(x, y, 20 + expProgress * 50, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = `rgba(255, 100, 0, ${opacity})`;
         ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.arc(x, y, 12, 0, Math.PI * 2);
+        ctx.arc(x, y, 30 + expProgress * 60, 0, Math.PI * 2);
         ctx.stroke();
-      } else if (missile.status === 'intercepted') {
-        // Explosion effect
-        ctx.fillStyle = '#ffff0080';
-        ctx.beginPath();
-        ctx.arc(x, y, 20, 0, Math.PI * 2);
-        ctx.fill();
+
+        ctx.fillStyle = `rgba(0, 255, 0, ${opacity})`;
+        ctx.font = 'bold 12px monospace';
+        ctx.fillText('INTERCEPTED', x + 25, y);
       }
     });
 
@@ -189,27 +225,43 @@ export default function CityMap() {
     setDeployments([...deployments, deployment]);
   };
 
+  // Animate missiles for CityMap
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMissiles(prev => prev.map(m => {
+        if (m.status === 'incoming') {
+          return { ...m, progress: Math.min(1, m.progress + 0.02) };
+        } else if (m.status === 'intercepted') {
+          return { ...m, progress: m.progress + 0.05 };
+        }
+        return m;
+      }).filter(m => m.progress < 2)); // remove after explosion animation finishes
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
+
   const handleSimulateMissile = () => {
     const missile = {
       id: Math.random().toString(36),
       location: {
         x: Math.random() * 1000,
-        y: Math.random() * 1000
+        y: 0
       },
       target: {
-        x: 500,
-        y: 500
+        x: 300 + Math.random() * 400,
+        y: 300 + Math.random() * 400
       },
-      status: 'incoming'
+      status: 'incoming',
+      progress: 0
     };
-    setMissiles([...missiles, missile]);
+    setMissiles((prev) => [...prev, missile]);
 
-    // Auto-intercept after 2 seconds
+    // Auto-intercept after reaching target (roughly ~2.5 seconds)
     setTimeout(() => {
       setMissiles(prev => prev.map(m =>
-        m.id === missile.id ? { ...m, status: 'intercepted' } : m
+        m.id === missile.id ? { ...m, status: 'intercepted', progress: 1 } : m
       ));
-    }, 2000);
+    }, 2500);
   };
 
   return (
