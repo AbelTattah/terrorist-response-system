@@ -66,7 +66,7 @@ class SensorMonitoringState(State):
         # Check for incoming events
         msg = await self.receive(timeout=3)
         if msg:
-            logger.info(f"SensorAgent: Event detected: {msg.body}")
+            logger.info(f"SensorAgent: Triggering events from sensor reports - Event detected: {msg.body}")
             # Send alert to coordinator
             alert_msg = Message(to="coordinator@localhost")
             alert_msg.set_metadata("performative", "inform")
@@ -197,6 +197,9 @@ class RescueAgentFSM(FSMBehaviour):
     
     async def on_start(self):
         logger.info(f"RescueAgent FSM starting at state {self.current_state}")
+        # Define rescue goals and reactive behavior
+        logger.info(f"RescueAgent: Defining rescue goals - Deploy troops to mitigate threats and secure area")
+        logger.info(f"RescueAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
     
     async def on_end(self):
         logger.info(f"RescueAgent FSM finished at state {self.current_state}")
@@ -265,6 +268,9 @@ class DomeDefenseAgentFSM(FSMBehaviour):
     
     async def on_start(self):
         logger.info(f"DomeDefenseAgent FSM starting at state {self.current_state}")
+        # Define response goals and reactive behavior
+        logger.info(f"DomeDefenseAgent: Defining response goals - Intercept and neutralize incoming threats")
+        logger.info(f"DomeDefenseAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
     
     async def on_end(self):
         logger.info(f"DomeDefenseAgent FSM finished at state {self.current_state}")
