@@ -84,6 +84,10 @@ jspm_packages/
 .cache
 .parcel-cache
 
+/server/__pycache__
+/server/agents/__pycache__
+/server/models/__pycache__
+
 # Next.js build output
 .next
 
