@@ -14,6 +14,7 @@ from dotenv import load_dotenv
 from agents.agent_manager import AgentManager
 from models.database import init_db, get_db
 from models.schemas import Event, AgentState, ExecutionTrace
+from missile_simulation import init_simulation, start_simulation, trigger_missile, set_dome, get_dome_state, get_stats, get_snapshot
 
 # Load environment variables
 load_dotenv()
@@ -62,6 +63,18 @@ def create_app():
     register_routes()
     register_socketio_handlers()
     
+    # Start the autonomous background environment simulation concurrently
+    try:
+        from environment import start_background_simulation
+        start_background_simulation()
+    except Exception as e:
+        logger.error(f"Failed to start background simulation autonomously: {e}")
+
+    # Initialize and start missile physical simulation
+    init_simulation(socketio)
+    start_simulation()
+    logger.info("Missile physics simulation initialized and started")
+        
     return app
 
 
@@ -143,8 +156,18 @@ def register_routes():
         if not agent_manager:
             return jsonify({'error': 'Agent manager not initialized'}), 500
         
-        traces = agent_manager.get_traces(limit=limit, agent_id=agent_id)
-        return jsonify({'traces': traces})
+        raw_traces = agent_manager.get_traces(limit=limit, agent_id=agent_id)
+        
+        # Normalize field names so the frontend gets what it expects
+        normalized = []
+        for t in raw_traces:
+            normalized.append({
+                **t,
+                'agent': t.get('agent_id', t.get('agent', 'unknown')),
+                'event_type': t.get('event_type') or 'unknown',
+            })
+        
+        return jsonify({'traces': normalized})
     
     @app.route('/api/commands/deploy-troops', methods=['POST'])
     def deploy_troops():
@@ -164,11 +187,44 @@ def register_routes():
     @app.route('/api/commands/activate-dome', methods=['POST'])
     def activate_dome():
         """Command to activate dome defense"""
+        data = request.get_json() or {}
+        active = data.get('active', True)
+        
         if not agent_manager:
             return jsonify({'error': 'Agent manager not initialized'}), 500
         
-        result = agent_manager.activate_dome()
+        # Update physics engine
+        set_dome(active)
+        
+        # Update agent manager state
+        if active:
+            result = agent_manager.activate_dome()
+        else:
+            result = agent_manager.deactivate_dome()
+            
         return jsonify(result)
+        
+    @app.route('/api/commands/simulate-missile', methods=['POST'])
+    def simulate_missile():
+        """Command to simulate one or more missiles"""
+        if not agent_manager:
+            return jsonify({'error': 'Agent manager not initialized'}), 500
+        
+        data = request.get_json() or {}
+        count = max(1, min(10, data.get('count', 1)))
+        
+        results = []
+        for _ in range(count):
+            # Trigger in physics engine
+            mid = trigger_missile()
+            
+            # Log in agent manager
+            res = agent_manager.simulate_missile(
+                target={'x': 400, 'y': 500} # Physics engine internally targets dome
+            )
+            results.append({**res, "physics_id": mid})
+            
+        return jsonify({'missiles': results, 'count': count})
     
     @app.route('/api/simulation/status', methods=['GET'])
     def simulation_status():
@@ -176,7 +232,12 @@ def register_routes():
         if not agent_manager:
             return jsonify({'error': 'Agent manager not initialized'}), 500
         
-        return jsonify(agent_manager.get_simulation_status())
+        status = agent_manager.get_simulation_status()
+        # Mix in real-time physics stats
+        status['dome_active'] = get_dome_state()
+        status['physics_stats'] = get_stats()
+        
+        return jsonify(status)
     
     @app.errorhandler(404)
     def not_found(error):
@@ -241,7 +302,7 @@ def register_socketio_handlers():
         )
         
         # Broadcast to all clients
-        socketio.emit('event_created', event, broadcast=True)
+        socketio.emit('event_created', event)
         logger.info(f"Event created: {event['id']}")
     
     @socketio.on('command_deploy_troops')
@@ -256,7 +317,7 @@ def register_socketio_handlers():
             unit_size=data.get('unit_size', 'standard')
         )
         
-        socketio.emit('troops_deployed', result, broadcast=True)
+        socketio.emit('troops_deployed', result)
         logger.info(f"Troops deployed: {result}")
     
     @socketio.on('command_activate_dome')
@@ -267,7 +328,7 @@ def register_socketio_handlers():
             return
         
         result = agent_manager.activate_dome()
-        socketio.emit('dome_activated', result, broadcast=True)
+        socketio.emit('dome_activated', result)
         logger.info(f"Dome activated: {result}")
     
     @socketio.on('voice_command')
@@ -293,12 +354,12 @@ def broadcast_agent_state(agent_id, state_data):
 
 def broadcast_event(event_data):
     """Broadcast event to all connected clients"""
-    socketio.emit('event_occurred', event_data, broadcast=True)
+    socketio.emit('event_occurred', event_data)
 
 
 def broadcast_trace(trace_data):
     """Broadcast execution trace to all connected clients"""
-    socketio.emit('trace_recorded', trace_data, broadcast=True)
+    socketio.emit('trace_recorded', trace_data)
 
 
 if __name__ == '__main__':

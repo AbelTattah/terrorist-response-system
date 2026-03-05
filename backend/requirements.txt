@@ -11,7 +11,3 @@ pydantic==2.5.0
 SQLAlchemy==2.0.40
 pymysql==1.1.0
 redis==5.0.1
-eventlet==0.33.3
-gevent==23.9.1
-gevent-websocket==0.10.1
-dnspython==2.4.2

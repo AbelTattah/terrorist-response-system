@@ -88,6 +88,9 @@ class AgentManager:
         }
         
         self.events.append(event)
+        # Cap events to last 100
+        if len(self.events) > 100:
+            self.events.pop(0)
         
         # Log trace
         self.log_trace(
@@ -98,7 +101,7 @@ class AgentManager:
         )
         
         # Broadcast to frontend
-        self.socketio.emit('event_created', event, broadcast=True)
+        self.socketio.emit('event_created', event)
         
         # Trigger coordinator agent
         self._trigger_coordinator(event)
@@ -155,8 +158,7 @@ class AgentManager:
                 'to_state': new_state,
                 'message': message,
                 'timestamp': datetime.utcnow().isoformat()
-            },
-            broadcast=True
+            }
         )
         
         logger.info(f"Agent {agent_id} state changed: {old_state} -> {new_state}")
@@ -192,7 +194,7 @@ class AgentManager:
         )
         
         # Broadcast deployment
-        self.socketio.emit('troops_deployed', deployment, broadcast=True)
+        self.socketio.emit('troops_deployed', deployment)
         
         logger.info(f"Troops deployed: {deployment_id}")
         return deployment
@@ -225,7 +227,7 @@ class AgentManager:
             'timestamp': datetime.utcnow().isoformat()
         }
         
-        self.socketio.emit('dome_activated', result, broadcast=True)
+        self.socketio.emit('dome_activated', result)
         
         logger.info("Dome defense system activated")
         return result
@@ -258,7 +260,7 @@ class AgentManager:
             'timestamp': datetime.utcnow().isoformat()
         }
         
-        self.socketio.emit('dome_deactivated', result, broadcast=True)
+        self.socketio.emit('dome_deactivated', result)
         
         logger.info("Dome defense system deactivated")
         return result
@@ -302,7 +304,7 @@ class AgentManager:
         )
         
         # Broadcast missile
-        self.socketio.emit('missile_detected', missile, broadcast=True)
+        self.socketio.emit('missile_detected', missile)
         
         logger.info(f"Missile simulated: {missile_id}")
         return missile
@@ -342,7 +344,7 @@ class AgentManager:
             'timestamp': datetime.utcnow().isoformat()
         }
         
-        self.socketio.emit('missile_intercepted', result, broadcast=True)
+        self.socketio.emit('missile_intercepted', result)
         
         logger.info(f"Missile intercepted: {missile_id}")
         return result
@@ -364,9 +366,12 @@ class AgentManager:
         }
         
         self.traces.append(trace)
+        # Cap traces to last 500 to prevent memory leaks during long runs
+        if len(self.traces) > 500:
+            self.traces.pop(0)
         
         # Broadcast trace
-        self.socketio.emit('trace_recorded', trace, broadcast=True)
+        self.socketio.emit('trace_recorded', trace)
         
         logger.debug(f"Trace logged: {trace_id}")
     

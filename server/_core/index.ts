@@ -37,24 +37,26 @@ async function startServer() {
   registerOAuthRoutes(app);
 
   // Simulation Proxy - Direct connection to Python backend
-  const SIMULATION_BACKEND = "http://localhost:5000";
+  const SIMULATION_BACKEND = "http://127.0.0.1:5000";
   const simulationRoutes = ["/api/simulation", "/api/agents", "/api/events", "/api/traces", "/api/commands"];
 
   app.use(simulationRoutes, async (req, res, next) => {
     try {
       const { default: axios } = await import("axios");
       const targetUrl = `${SIMULATION_BACKEND}${req.originalUrl}`;
+      console.log(`[Proxy] ${req.method} ${req.originalUrl} -> ${targetUrl}`);
 
       const response = await axios({
         method: req.method,
         url: targetUrl,
         data: req.body,
         params: req.query,
-        timeout: 5000, // Sufficient timeout for agent operations
+        timeout: 10000, // Sufficient timeout for agent operations
       });
 
       res.status(response.status).json(response.data);
     } catch (error: any) {
+      console.error(`[Proxy Error] ${req.method} ${req.originalUrl}:`, error.message);
       if (error.response) {
         // Backend replied with an error
         res.status(error.response.status).json(error.response.data);

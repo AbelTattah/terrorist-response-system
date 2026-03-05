@@ -43,7 +43,7 @@ export default function ExecutionTrace() {
     return trace.agent === filter;
   });
 
-  const agents = Array.from(new Set(traces.map(t => t.agent)));
+  const agents = Array.from(new Set(traces.map(t => t.agent).filter(Boolean)));
 
   const getEventTypeColor = (type: string) => {
     switch (type) {
@@ -114,7 +114,7 @@ export default function ExecutionTrace() {
             >
               <option value="all">ALL_AGENTS</option>
               {agents && agents.map((agent: string) => (
-                <option key={agent} value={agent} className="bg-gray-900">{agent.toUpperCase()}</option>
+                <option key={agent} value={agent} className="bg-gray-900">{(agent ?? '').toUpperCase()}</option>
               ))}
             </select>
           </div>
@@ -158,7 +158,7 @@ export default function ExecutionTrace() {
                               {trace.agent}
                             </span>
                             <div className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold tracking-widest bg-black/40 border border-current opacity-70 ${getEventTypeColor(trace.event_type)}`}>
-                              {trace.event_type.toUpperCase()}
+                              {(trace.event_type ?? 'unknown').toUpperCase()}
                             </div>
                           </div>
                           <ChevronDown

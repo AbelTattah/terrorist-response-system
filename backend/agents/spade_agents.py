@@ -1,17 +1,59 @@
 """
-SPADE Agent implementations with FSM behaviors
+SPADE-inspired Agent implementations with FSM behaviors
+Uses local in-memory message bus for reliable autonomous operation
 """
 
 import asyncio
 import logging
-from spade.agent import Agent
-from spade.behaviour import FSMBehaviour, State, CyclicBehaviour
-from spade.message import Message
-import aiohttp
+import time
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
-# FSM States
+# --- Local Message Bus -------------------------------------------------------
+# Replaces XMPP with a lightweight asyncio-based message queue system
+# Each agent has its own inbox queue for receiving messages
+
+class MessageBus:
+    """In-memory message bus for inter-agent communication"""
+    _instance = None
+    
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    def __init__(self):
+        self.queues = defaultdict(asyncio.Queue)
+        self.agents = {}
+        logger.info("MessageBus: Local message bus initialized")
+    
+    def register_agent(self, agent_id, agent):
+        self.agents[agent_id] = agent
+        logger.info(f"MessageBus: Registered agent '{agent_id}'")
+    
+    async def send(self, from_id, to_id, body, metadata=None):
+        msg = {
+            'from': from_id,
+            'to': to_id,
+            'body': body,
+            'metadata': metadata or {},
+            'timestamp': time.time()
+        }
+        await self.queues[to_id].put(msg)
+        logger.debug(f"MessageBus: Message from '{from_id}' to '{to_id}': {body[:60]}")
+    
+    async def receive(self, agent_id, timeout=5):
+        try:
+            msg = await asyncio.wait_for(self.queues[agent_id].get(), timeout=timeout)
+            return msg
+        except asyncio.TimeoutError:
+            return None
+
+
+# --- FSM States --------------------------------------------------------------
+
 SENSOR_IDLE = "SENSOR_IDLE"
 SENSOR_MONITORING = "SENSOR_MONITORING"
 SENSOR_ALERT_TRIGGERED = "SENSOR_ALERT_TRIGGERED"
@@ -29,331 +71,310 @@ DOME_TRACKING = "DOME_TRACKING"
 DOME_INTERCEPTING = "DOME_INTERCEPTING"
 
 
-class SensorAgentFSM(FSMBehaviour):
-    """Sensor Agent FSM - Detects events from news API and user reports"""
+# --- Base Agent Class --------------------------------------------------------
+
+class LocalAgent:
+    """Base agent with FSM support using local message bus"""
     
-    async def on_start(self):
-        logger.info(f"SensorAgent FSM starting at state {self.current_state}")
+    def __init__(self, agent_id):
+        self.agent_id = agent_id
+        self.bus = MessageBus.get_instance()
+        self.bus.register_agent(agent_id, self)
+        self.current_state = None
+        self.states = {}
+        self.transitions = set()
+        self.initial_state = None
+        self._running = False
+        self._task = None
     
-    async def on_end(self):
-        logger.info(f"SensorAgent FSM finished at state {self.current_state}")
-
-
-class SensorIdleState(State):
-    """Idle state - waiting for monitoring command"""
+    def add_state(self, name, handler, initial=False):
+        self.states[name] = handler
+        if initial:
+            self.initial_state = name
+            self.current_state = name
     
-    async def run(self):
-        logger.debug("SensorAgent: Idle state")
-        # Wait for message to start monitoring
-        msg = await self.receive(timeout=5)
-        if msg:
-            logger.info(f"SensorAgent: Received command: {msg.body}")
-            self.set_next_state(SENSOR_MONITORING)
-        else:
-            # Stay in idle
-            self.set_next_state(SENSOR_IDLE)
-
-
-class SensorMonitoringState(State):
-    """Monitoring state - checking for events"""
+    def add_transition(self, source, dest):
+        self.transitions.add((source, dest))
     
-    async def run(self):
-        logger.debug("SensorAgent: Monitoring state")
-        
-        # Simulate checking news API and user reports
-        # In production, this would call actual APIs
-        
-        # Check for incoming events
-        msg = await self.receive(timeout=3)
-        if msg:
-            logger.info(f"SensorAgent: Triggering events from sensor reports - Event detected: {msg.body}")
-            # Send alert to coordinator
-            alert_msg = Message(to="coordinator@localhost")
-            alert_msg.set_metadata("performative", "inform")
-            alert_msg.body = f"EVENT_DETECTED:{msg.body}"
-            await self.send(alert_msg)
-            self.set_next_state(SENSOR_ALERT_TRIGGERED)
-        else:
-            # Continue monitoring
-            self.set_next_state(SENSOR_MONITORING)
-
-
-class SensorAlertTriggeredState(State):
-    """Alert triggered state - event detected"""
+    async def send(self, to_id, body, metadata=None):
+        await self.bus.send(self.agent_id, to_id, body, metadata)
     
-    async def run(self):
-        logger.debug("SensorAgent: Alert triggered state")
-        
-        # Wait for acknowledgment from coordinator
-        msg = await self.receive(timeout=5)
-        if msg and "ACK" in msg.body:
-            logger.info("SensorAgent: Alert acknowledged by coordinator")
-            self.set_next_state(SENSOR_MONITORING)
-        else:
-            # Timeout - return to monitoring
-            self.set_next_state(SENSOR_MONITORING)
-
-
-class SensorAgent(Agent):
-    """Sensor Agent - Detects disaster events"""
+    async def receive(self, timeout=5):
+        return await self.bus.receive(self.agent_id, timeout)
     
     async def setup(self):
-        logger.info(f"SensorAgent setup: {self.jid}")
-        
-        fsm = SensorAgentFSM()
-        fsm.add_state(name=SENSOR_IDLE, state=SensorIdleState(), initial=True)
-        fsm.add_state(name=SENSOR_MONITORING, state=SensorMonitoringState())
-        fsm.add_state(name=SENSOR_ALERT_TRIGGERED, state=SensorAlertTriggeredState())
-        
-        fsm.add_transition(source=SENSOR_IDLE, dest=SENSOR_MONITORING)
-        fsm.add_transition(source=SENSOR_MONITORING, dest=SENSOR_ALERT_TRIGGERED)
-        fsm.add_transition(source=SENSOR_MONITORING, dest=SENSOR_MONITORING)
-        fsm.add_transition(source=SENSOR_ALERT_TRIGGERED, dest=SENSOR_MONITORING)
-        
-        self.add_behaviour(fsm)
-
-
-class CoordinatorAgentFSM(FSMBehaviour):
-    """Coordinator Agent FSM - Processes events and assigns tasks"""
+        """Override in subclass"""
+        pass
     
-    async def on_start(self):
-        logger.info(f"CoordinatorAgent FSM starting at state {self.current_state}")
+    async def start(self):
+        await self.setup()
+        self._running = True
+        self._task = asyncio.ensure_future(self._run_fsm())
+        logger.info(f"Agent {self.agent_id} connected and authenticated.")
     
-    async def on_end(self):
-        logger.info(f"CoordinatorAgent FSM finished at state {self.current_state}")
+    async def stop(self):
+        self._running = False
+        if self._task:
+            self._task.cancel()
+    
+    async def _run_fsm(self):
+        logger.info(f"{self.agent_id} FSM starting at state {self.current_state}")
+        while self._running:
+            try:
+                handler = self.states.get(self.current_state)
+                if handler:
+                    next_state = await handler(self)
+                    if next_state and next_state != self.current_state:
+                        if (self.current_state, next_state) in self.transitions:
+                            logger.info(f"{self.agent_id} FSM transiting from {self.current_state} to {next_state}.")
+                            self.current_state = next_state
+                        elif next_state == self.current_state:
+                            pass  # Same-state transition, no logging needed
+                        else:
+                            logger.warning(f"{self.agent_id} FSM: Transition {self.current_state} -> {next_state} not registered!")
+                    elif next_state == self.current_state:
+                        pass  # quiet idle cycling
+                else:
+                    await asyncio.sleep(1)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"{self.agent_id} FSM error: {e}")
+                await asyncio.sleep(1)
+        logger.info(f"{self.agent_id} FSM finished at state {self.current_state}")
 
 
-class CoordinatorIdleState(State):
-    """Idle state - waiting for events"""
+# --- Sensor Agent ------------------------------------------------------------
+
+class SensorAgent(LocalAgent):
+    """Sensor Agent - Detects disaster events from environment"""
     
-    async def run(self):
-        logger.debug("CoordinatorAgent: Idle state")
+    def __init__(self):
+        super().__init__("sensor")
+    
+    async def setup(self):
+        logger.info(f"SensorAgent setup: {self.agent_id}")
+        logger.info("SensorAgent: Defining sensor goals - Monitor environment for threats and anomalies")
+        logger.info("SensorAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
         
-        # Wait for event from sensor
-        msg = await self.receive(timeout=5)
-        if msg and "EVENT_DETECTED" in msg.body:
-            logger.info(f"CoordinatorAgent: Event received: {msg.body}")
-            self.set_next_state(COORDINATOR_PROCESSING)
+        self.add_state(SENSOR_IDLE, self.state_idle, initial=True)
+        self.add_state(SENSOR_MONITORING, self.state_monitoring)
+        self.add_state(SENSOR_ALERT_TRIGGERED, self.state_alert_triggered)
+        
+        self.add_transition(SENSOR_IDLE, SENSOR_IDLE)
+        self.add_transition(SENSOR_IDLE, SENSOR_MONITORING)
+        self.add_transition(SENSOR_MONITORING, SENSOR_MONITORING)
+        self.add_transition(SENSOR_MONITORING, SENSOR_ALERT_TRIGGERED)
+        self.add_transition(SENSOR_ALERT_TRIGGERED, SENSOR_MONITORING)
+    
+    async def state_idle(self, agent):
+        """Idle state - waiting for monitoring command"""
+        msg = await agent.receive(timeout=5)
+        if msg:
+            logger.info(f"SensorAgent: Received command: {msg['body']}")
+            return SENSOR_MONITORING
+        return SENSOR_IDLE
+    
+    async def state_monitoring(self, agent):
+        """Monitoring state - checking for events"""
+        logger.debug("SensorAgent: Monitoring state - scanning for threats...")
+        
+        msg = await agent.receive(timeout=3)
+        if msg:
+            logger.info(f"SensorAgent: Triggering events from sensor reports - Event detected: {msg['body']}")
+            # Send alert to coordinator
+            await agent.send("coordinator", f"EVENT_DETECTED:{msg['body']}", {"performative": "inform"})
+            return SENSOR_ALERT_TRIGGERED
+        return SENSOR_MONITORING
+    
+    async def state_alert_triggered(self, agent):
+        """Alert triggered - event detected, waiting for acknowledgment"""
+        logger.info("SensorAgent: Alert triggered - waiting for coordinator acknowledgment")
+        
+        msg = await agent.receive(timeout=5)
+        if msg and "ACK" in msg['body']:
+            logger.info("SensorAgent: Alert acknowledged by coordinator")
         else:
-            self.set_next_state(COORDINATOR_IDLE)
+            logger.info("SensorAgent: No acknowledgment received - returning to monitoring")
+        return SENSOR_MONITORING
 
 
-class CoordinatorProcessingState(State):
-    """Processing state - analyzing event"""
+# --- Coordinator Agent -------------------------------------------------------
+
+class CoordinatorAgent(LocalAgent):
+    """Coordinator Agent - Processes events and assigns tasks"""
     
-    async def run(self):
-        logger.debug("CoordinatorAgent: Processing state")
+    def __init__(self):
+        super().__init__("coordinator")
+        self._last_event = None
+    
+    async def setup(self):
+        logger.info(f"CoordinatorAgent setup: {self.agent_id}")
+        logger.info("CoordinatorAgent: Defining coordination goals - Process events and deploy response units")
+        logger.info("CoordinatorAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
         
-        # Simulate event analysis
+        self.add_state(COORDINATOR_IDLE, self.state_idle, initial=True)
+        self.add_state(COORDINATOR_PROCESSING, self.state_processing)
+        self.add_state(COORDINATOR_ASSIGNING, self.state_assigning)
+        
+        self.add_transition(COORDINATOR_IDLE, COORDINATOR_IDLE)
+        self.add_transition(COORDINATOR_IDLE, COORDINATOR_PROCESSING)
+        self.add_transition(COORDINATOR_PROCESSING, COORDINATOR_ASSIGNING)
+        self.add_transition(COORDINATOR_ASSIGNING, COORDINATOR_IDLE)
+    
+    async def state_idle(self, agent):
+        """Idle state - waiting for events from sensor"""
+        msg = await agent.receive(timeout=5)
+        if msg and "EVENT_DETECTED" in msg['body']:
+            logger.info(f"CoordinatorAgent: Event received: {msg['body']}")
+            self._last_event = msg
+            return COORDINATOR_PROCESSING
+        return COORDINATOR_IDLE
+    
+    async def state_processing(self, agent):
+        """Processing state - analyzing event"""
+        logger.info("CoordinatorAgent: Processing and analyzing event severity...")
         await asyncio.sleep(1)
         
         # Send acknowledgment to sensor
-        msg = await self.receive(timeout=1)
-        if msg:
-            sensor_ack = Message(to=msg.sender)
-            sensor_ack.set_metadata("performative", "inform")
-            sensor_ack.body = "ACK"
-            await self.send(sensor_ack)
+        if self._last_event:
+            await agent.send(self._last_event['from'], "ACK: Event received and being processed", {"performative": "inform"})
+            logger.info("CoordinatorAgent: Sent ACK to sensor agent")
         
-        self.set_next_state(COORDINATOR_ASSIGNING)
-
-
-class CoordinatorAssigningState(State):
-    """Assigning state - assigning tasks to rescue agents"""
+        return COORDINATOR_ASSIGNING
     
-    async def run(self):
-        logger.debug("CoordinatorAgent: Assigning state")
+    async def state_assigning(self, agent):
+        """Assigning state - dispatching rescue units"""
+        logger.info("CoordinatorAgent: Assigning rescue deployment tasks...")
         
-        # Send task assignment to rescue agent
-        task_msg = Message(to="rescue@localhost")
-        task_msg.set_metadata("performative", "request")
-        task_msg.body = "DEPLOY_TROOPS"
-        await self.send(task_msg)
+        await agent.send("rescue", "DEPLOY_TROOPS", {"performative": "request"})
+        logger.info("CoordinatorAgent: Task assigned to rescue agent - DEPLOY_TROOPS")
         
-        logger.info("CoordinatorAgent: Task assigned to rescue agent")
-        self.set_next_state(COORDINATOR_IDLE)
+        return COORDINATOR_IDLE
 
 
-class CoordinatorAgent(Agent):
-    """Coordinator Agent - Processes events and coordinates response"""
-    
-    async def setup(self):
-        logger.info(f"CoordinatorAgent setup: {self.jid}")
-        
-        fsm = CoordinatorAgentFSM()
-        fsm.add_state(name=COORDINATOR_IDLE, state=CoordinatorIdleState(), initial=True)
-        fsm.add_state(name=COORDINATOR_PROCESSING, state=CoordinatorProcessingState())
-        fsm.add_state(name=COORDINATOR_ASSIGNING, state=CoordinatorAssigningState())
-        
-        fsm.add_transition(source=COORDINATOR_IDLE, dest=COORDINATOR_PROCESSING)
-        fsm.add_transition(source=COORDINATOR_PROCESSING, dest=COORDINATOR_ASSIGNING)
-        fsm.add_transition(source=COORDINATOR_ASSIGNING, dest=COORDINATOR_IDLE)
-        
-        self.add_behaviour(fsm)
+# --- Rescue Agent ------------------------------------------------------------
 
-
-class RescueAgentFSM(FSMBehaviour):
-    """Rescue Agent FSM - Deploys troops"""
-    
-    async def on_start(self):
-        logger.info(f"RescueAgent FSM starting at state {self.current_state}")
-        # Define rescue goals and reactive behavior
-        logger.info(f"RescueAgent: Defining rescue goals - Deploy troops to mitigate threats and secure area")
-        logger.info(f"RescueAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
-    
-    async def on_end(self):
-        logger.info(f"RescueAgent FSM finished at state {self.current_state}")
-
-
-class RescueIdleState(State):
-    """Idle state - waiting for deployment command"""
-    
-    async def run(self):
-        logger.debug("RescueAgent: Idle state")
-        
-        msg = await self.receive(timeout=5)
-        if msg and "DEPLOY_TROOPS" in msg.body:
-            logger.info("RescueAgent: Deployment command received")
-            self.set_next_state(RESCUE_DEPLOYING)
-        else:
-            self.set_next_state(RESCUE_IDLE)
-
-
-class RescueDeployingState(State):
-    """Deploying state - sending troops"""
-    
-    async def run(self):
-        logger.debug("RescueAgent: Deploying state")
-        
-        # Simulate troop deployment
-        await asyncio.sleep(2)
-        
-        logger.info("RescueAgent: Troops deployed")
-        self.set_next_state(RESCUE_ENGAGED)
-
-
-class RescueEngagedState(State):
-    """Engaged state - troops active"""
-    
-    async def run(self):
-        logger.debug("RescueAgent: Engaged state")
-        
-        # Wait for completion signal
-        await asyncio.sleep(3)
-        
-        logger.info("RescueAgent: Mission complete")
-        self.set_next_state(RESCUE_IDLE)
-
-
-class RescueAgent(Agent):
+class RescueAgent(LocalAgent):
     """Rescue Agent - Deploys troops for rescue operations"""
     
+    def __init__(self):
+        super().__init__("rescue")
+    
     async def setup(self):
-        logger.info(f"RescueAgent setup: {self.jid}")
+        logger.info(f"RescueAgent setup: {self.agent_id}")
+        logger.info("RescueAgent: Defining rescue goals - Deploy troops to mitigate threats and secure area")
+        logger.info("RescueAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
         
-        fsm = RescueAgentFSM()
-        fsm.add_state(name=RESCUE_IDLE, state=RescueIdleState(), initial=True)
-        fsm.add_state(name=RESCUE_DEPLOYING, state=RescueDeployingState())
-        fsm.add_state(name=RESCUE_ENGAGED, state=RescueEngagedState())
+        self.add_state(RESCUE_IDLE, self.state_idle, initial=True)
+        self.add_state(RESCUE_DEPLOYING, self.state_deploying)
+        self.add_state(RESCUE_ENGAGED, self.state_engaged)
         
-        fsm.add_transition(source=RESCUE_IDLE, dest=RESCUE_DEPLOYING)
-        fsm.add_transition(source=RESCUE_DEPLOYING, dest=RESCUE_ENGAGED)
-        fsm.add_transition(source=RESCUE_ENGAGED, dest=RESCUE_IDLE)
-        
-        self.add_behaviour(fsm)
-
-
-class DomeDefenseAgentFSM(FSMBehaviour):
-    """Dome Defense Agent FSM - Intercepts missiles"""
+        self.add_transition(RESCUE_IDLE, RESCUE_IDLE)
+        self.add_transition(RESCUE_IDLE, RESCUE_DEPLOYING)
+        self.add_transition(RESCUE_DEPLOYING, RESCUE_ENGAGED)
+        self.add_transition(RESCUE_ENGAGED, RESCUE_IDLE)
     
-    async def on_start(self):
-        logger.info(f"DomeDefenseAgent FSM starting at state {self.current_state}")
-        # Define response goals and reactive behavior
-        logger.info(f"DomeDefenseAgent: Defining response goals - Intercept and neutralize incoming threats")
-        logger.info(f"DomeDefenseAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
+    async def state_idle(self, agent):
+        """Idle state - waiting for deployment command"""
+        msg = await agent.receive(timeout=5)
+        if msg and "DEPLOY_TROOPS" in msg['body']:
+            logger.info("RescueAgent: Deployment command received from coordinator")
+            return RESCUE_DEPLOYING
+        return RESCUE_IDLE
     
-    async def on_end(self):
-        logger.info(f"DomeDefenseAgent FSM finished at state {self.current_state}")
-
-
-class DomeIdleState(State):
-    """Idle state - waiting for activation"""
+    async def state_deploying(self, agent):
+        """Deploying state - sending troops to threat location"""
+        logger.info("RescueAgent: Deploying rescue troops to threat zone...")
+        await asyncio.sleep(2)
+        logger.info("RescueAgent: Troops deployed successfully")
+        return RESCUE_ENGAGED
     
-    async def run(self):
-        logger.debug("DomeDefenseAgent: Idle state")
-        
-        msg = await self.receive(timeout=5)
-        if msg and "ACTIVATE" in msg.body:
-            logger.info("DomeDefenseAgent: Activation command received")
-            self.set_next_state(DOME_TRACKING)
-        else:
-            self.set_next_state(DOME_IDLE)
+    async def state_engaged(self, agent):
+        """Engaged state - troops active at location"""
+        logger.info("RescueAgent: Troops engaged - securing area and assisting civilians")
+        await asyncio.sleep(3)
+        logger.info("RescueAgent: Mission complete - area secured")
+        return RESCUE_IDLE
 
 
-class DomeTrackingState(State):
-    """Tracking state - monitoring for missiles"""
-    
-    async def run(self):
-        logger.debug("DomeDefenseAgent: Tracking state")
-        
-        msg = await self.receive(timeout=3)
-        if msg and "MISSILE" in msg.body:
-            logger.info(f"DomeDefenseAgent: Missile detected: {msg.body}")
-            self.set_next_state(DOME_INTERCEPTING)
-        else:
-            self.set_next_state(DOME_TRACKING)
+# --- Dome Defense Agent ------------------------------------------------------
 
-
-class DomeInterceptingState(State):
-    """Intercepting state - launching interceptor drones"""
-    
-    async def run(self):
-        logger.debug("DomeDefenseAgent: Intercepting state")
-        
-        # Simulate interception
-        await asyncio.sleep(1)
-        
-        logger.info("DomeDefenseAgent: Missile intercepted")
-        self.set_next_state(DOME_TRACKING)
-
-
-class DomeDefenseAgent(Agent):
+class DomeDefenseAgent(LocalAgent):
     """Dome Defense Agent - Intercepts incoming missiles"""
     
+    def __init__(self):
+        super().__init__("dome")
+    
     async def setup(self):
-        logger.info(f"DomeDefenseAgent setup: {self.jid}")
+        logger.info(f"DomeDefenseAgent setup: {self.agent_id}")
+        logger.info("DomeDefenseAgent: Defining response goals - Intercept and neutralize incoming threats")
+        logger.info("DomeDefenseAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
         
-        fsm = DomeDefenseAgentFSM()
-        fsm.add_state(name=DOME_IDLE, state=DomeIdleState(), initial=True)
-        fsm.add_state(name=DOME_TRACKING, state=DomeTrackingState())
-        fsm.add_state(name=DOME_INTERCEPTING, state=DomeInterceptingState())
+        self.add_state(DOME_IDLE, self.state_idle, initial=True)
+        self.add_state(DOME_TRACKING, self.state_tracking)
+        self.add_state(DOME_INTERCEPTING, self.state_intercepting)
         
-        fsm.add_transition(source=DOME_IDLE, dest=DOME_TRACKING)
-        fsm.add_transition(source=DOME_TRACKING, dest=DOME_INTERCEPTING)
-        fsm.add_transition(source=DOME_TRACKING, dest=DOME_TRACKING)
-        fsm.add_transition(source=DOME_INTERCEPTING, dest=DOME_TRACKING)
+        self.add_transition(DOME_IDLE, DOME_IDLE)
+        self.add_transition(DOME_IDLE, DOME_TRACKING)
+        self.add_transition(DOME_TRACKING, DOME_TRACKING)
+        self.add_transition(DOME_TRACKING, DOME_INTERCEPTING)
+        self.add_transition(DOME_INTERCEPTING, DOME_TRACKING)
+    
+    async def state_idle(self, agent):
+        """Idle state - waiting for activation"""
+        msg = await agent.receive(timeout=5)
+        if msg and "ACTIVATE" in msg['body']:
+            logger.info("DomeDefenseAgent: Activation command received - powering up tracking systems")
+            return DOME_TRACKING
+        return DOME_IDLE
+    
+    async def state_tracking(self, agent):
+        """Tracking state - scanning skies for missiles"""
+        logger.debug("DomeDefenseAgent: Tracking state - scanning for incoming projectiles...")
         
-        self.add_behaviour(fsm)
+        msg = await agent.receive(timeout=3)
+        if msg and "MISSILE" in msg['body']:
+            logger.info(f"DomeDefenseAgent: MISSILE DETECTED: {msg['body']}")
+            return DOME_INTERCEPTING
+        return DOME_TRACKING
+    
+    async def state_intercepting(self, agent):
+        """Intercepting state - launching interceptor"""
+        logger.info("DomeDefenseAgent: Launching interceptor drone...")
+        await asyncio.sleep(1)
+        logger.info("DomeDefenseAgent: Missile intercepted and neutralized successfully!")
+        return DOME_TRACKING
 
+
+# --- Agent Startup -----------------------------------------------------------
 
 async def start_agents():
-    """Start all SPADE agents"""
-    logger.info("Starting SPADE agents...")
+    """Start all agents with the local message bus"""
+    logger.info("Starting SPADE-inspired autonomous agents...")
     
     try:
-        # Create agents
-        sensor = SensorAgent("sensor@localhost", "password")
-        coordinator = CoordinatorAgent("coordinator@localhost", "password")
-        rescue = RescueAgent("rescue@localhost", "password")
-        dome = DomeDefenseAgent("dome@localhost", "password")
+        # Reset the message bus for a fresh start
+        MessageBus._instance = None
         
-        # Start agents
+        sensor = SensorAgent()
+        coordinator = CoordinatorAgent()
+        rescue = RescueAgent()
+        dome = DomeDefenseAgent()
+        
         await sensor.start()
-        await coordinator.start()
-        await rescue.start()
-        await dome.start()
+        await asyncio.sleep(0.5)
         
-        logger.info("All SPADE agents started successfully")
+        await coordinator.start()
+        await asyncio.sleep(0.5)
+        
+        await rescue.start()
+        await asyncio.sleep(0.5)
+        
+        await dome.start()
+        await asyncio.sleep(0.5)
+        
+        logger.info("All autonomous agents started successfully")
         
         return {
             'sensor': sensor,
@@ -364,4 +385,6 @@ async def start_agents():
     
     except Exception as e:
         logger.error(f"Error starting agents: {e}")
+        import traceback
+        traceback.print_exc()
         return None
