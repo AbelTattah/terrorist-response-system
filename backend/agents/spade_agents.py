@@ -62,10 +62,6 @@ COORDINATOR_IDLE = "COORDINATOR_IDLE"
 COORDINATOR_PROCESSING = "COORDINATOR_PROCESSING"
 COORDINATOR_ASSIGNING = "COORDINATOR_ASSIGNING"
 
-RESCUE_IDLE = "RESCUE_IDLE"
-RESCUE_DEPLOYING = "RESCUE_DEPLOYING"
-RESCUE_ENGAGED = "RESCUE_ENGAGED"
-
 DOME_IDLE = "DOME_IDLE"
 DOME_TRACKING = "DOME_TRACKING"
 DOME_INTERCEPTING = "DOME_INTERCEPTING"
@@ -253,63 +249,18 @@ class CoordinatorAgent(LocalAgent):
         return COORDINATOR_IDLE
 
 
-# --- Rescue Agent ------------------------------------------------------------
-
-class RescueAgent(LocalAgent):
-    """Rescue Agent - Deploys troops for rescue operations"""
-    
-    def __init__(self):
-        super().__init__("rescue")
-    
-    async def setup(self):
-        logger.info(f"RescueAgent setup: {self.agent_id}")
-        logger.info("RescueAgent: Defining rescue goals - Deploy troops to mitigate threats and secure area")
-        logger.info("RescueAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
-        
-        self.add_state(RESCUE_IDLE, self.state_idle, initial=True)
-        self.add_state(RESCUE_DEPLOYING, self.state_deploying)
-        self.add_state(RESCUE_ENGAGED, self.state_engaged)
-        
-        self.add_transition(RESCUE_IDLE, RESCUE_IDLE)
-        self.add_transition(RESCUE_IDLE, RESCUE_DEPLOYING)
-        self.add_transition(RESCUE_DEPLOYING, RESCUE_ENGAGED)
-        self.add_transition(RESCUE_ENGAGED, RESCUE_IDLE)
-    
-    async def state_idle(self, agent):
-        """Idle state - waiting for deployment command"""
-        msg = await agent.receive(timeout=5)
-        if msg and "DEPLOY_TROOPS" in msg['body']:
-            logger.info("RescueAgent: Deployment command received from coordinator")
-            return RESCUE_DEPLOYING
-        return RESCUE_IDLE
-    
-    async def state_deploying(self, agent):
-        """Deploying state - sending troops to threat location"""
-        logger.info("RescueAgent: Deploying rescue troops to threat zone...")
-        await asyncio.sleep(2)
-        logger.info("RescueAgent: Troops deployed successfully")
-        return RESCUE_ENGAGED
-    
-    async def state_engaged(self, agent):
-        """Engaged state - troops active at location"""
-        logger.info("RescueAgent: Troops engaged - securing area and assisting civilians")
-        await asyncio.sleep(3)
-        logger.info("RescueAgent: Mission complete - area secured")
-        return RESCUE_IDLE
-
-
 # --- Dome Defense Agent ------------------------------------------------------
 
-class DomeDefenseAgent(LocalAgent):
+class RescueAgent(LocalAgent):
     """Dome Defense Agent - Intercepts incoming missiles"""
     
     def __init__(self):
         super().__init__("dome")
     
     async def setup(self):
-        logger.info(f"DomeDefenseAgent setup: {self.agent_id}")
-        logger.info("DomeDefenseAgent: Defining response goals - Intercept and neutralize incoming threats")
-        logger.info("DomeDefenseAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
+        logger.info(f"RescueAgent setup: {self.agent_id}")
+        logger.info("RescueAgent: Defining response goals - Intercept and neutralize incoming threats")
+        logger.info("RescueAgent: Implementing reactive behavior using Finite State Machine (FSMs)")
         
         self.add_state(DOME_IDLE, self.state_idle, initial=True)
         self.add_state(DOME_TRACKING, self.state_tracking)
@@ -325,25 +276,25 @@ class DomeDefenseAgent(LocalAgent):
         """Idle state - waiting for activation"""
         msg = await agent.receive(timeout=5)
         if msg and "ACTIVATE" in msg['body']:
-            logger.info("DomeDefenseAgent: Activation command received - powering up tracking systems")
+            logger.info("RescueAgent: Activation command received - powering up tracking systems")
             return DOME_TRACKING
         return DOME_IDLE
     
     async def state_tracking(self, agent):
         """Tracking state - scanning skies for missiles"""
-        logger.debug("DomeDefenseAgent: Tracking state - scanning for incoming projectiles...")
+        logger.debug("RescueAgent: Tracking state - scanning for incoming projectiles...")
         
         msg = await agent.receive(timeout=3)
         if msg and "MISSILE" in msg['body']:
-            logger.info(f"DomeDefenseAgent: MISSILE DETECTED: {msg['body']}")
+            logger.info(f"RescueAgent: MISSILE DETECTED: {msg['body']}")
             return DOME_INTERCEPTING
         return DOME_TRACKING
     
     async def state_intercepting(self, agent):
         """Intercepting state - launching interceptor"""
-        logger.info("DomeDefenseAgent: Launching interceptor drone...")
+        logger.info("RescueAgent: Launching interceptor drone...")
         await asyncio.sleep(1)
-        logger.info("DomeDefenseAgent: Missile intercepted and neutralized successfully!")
+        logger.info("RescueAgent: Missile intercepted and neutralized successfully!")
         return DOME_TRACKING
 
 
@@ -360,7 +311,7 @@ async def start_agents():
         sensor = SensorAgent()
         coordinator = CoordinatorAgent()
         rescue = RescueAgent()
-        dome = DomeDefenseAgent()
+        dome = RescueAgent()
         
         await sensor.start()
         await asyncio.sleep(0.5)

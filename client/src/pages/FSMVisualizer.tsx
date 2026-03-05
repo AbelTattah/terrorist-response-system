@@ -85,7 +85,7 @@ export default function FSMVisualizer() {
       ]
     },
     dome: {
-      name: 'DomeDefenseAgent',
+      name: 'RescueAgent',
       description: 'Intercepts incoming missiles with drone interceptors',
       states: ['IDLE', 'TRACKING', 'INTERCEPTING'],
       transitions: [

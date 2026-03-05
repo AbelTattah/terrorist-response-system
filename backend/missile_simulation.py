@@ -24,6 +24,7 @@ DOME_CY = 500
 DOME_RADIUS = 130          # interception engage radius
 MISSILE_SPEED = 90         # pixels per second
 INTERCEPTOR_SPEED = 180    # pixels per second (was 250 - too fast)
+TROOP_SPEED = 40           # pixels per second for ground units
 TICK = 0.1                 # physics tick seconds (10 Hz for stability)
 # For diagnostic logging without flooding
 _tick_count = 0 
@@ -32,6 +33,7 @@ _tick_count = 0
 _lock = threading.RLock()
 _missiles: dict = {}        # id -> missile dict
 _interceptors: dict = {}    # id -> interceptor dict
+_deployments: dict = {}     # id -> deployment dict
 _stats = {"incoming": 0, "intercepted": 0, "missed": 0}
 _dome_active = True
 _running = False
@@ -182,6 +184,32 @@ def _tick():
                     if dist_to_dome < DOME_RADIUS * 2:  # engage when closer (was 3)
                         _spawn_interceptor(mid)
 
+    # --- Move ground deployments ---
+    with _lock:
+        deployments_snap = {k: dict(v) for k, v in _deployments.items()}
+
+    for did, d in deployments_snap.items():
+        if d["status"] != "deploying":
+            continue
+        dx, dy, dist = _vec(d["x"], d["y"], d["tx"], d["ty"])
+        step = TROOP_SPEED * TICK
+        
+        if dist <= step:
+            # Reached target
+            with _lock:
+                if did in _deployments:
+                    _deployments[did]["x"] = d["tx"]
+                    _deployments[did]["y"] = d["ty"]
+                    _deployments[did]["status"] = "arrived"
+                    _deployments[did]["arrived_at"] = time.time()
+        else:
+            nx = d["x"] + (dx / dist) * step
+            ny = d["y"] + (dy / dist) * step
+            with _lock:
+                if did in _deployments:
+                    _deployments[did]["x"] = nx
+                    _deployments[did]["y"] = ny
+
     # --- Delayed cleanup of intercepted/missed missiles (after 1.5s flash) ---
     # We stagger removal so frontend can render explosion
     # Actually remove missiles 1.5 seconds after status change -- we do it by
@@ -214,12 +242,25 @@ def _build_snapshot():
             }
             for ic in _interceptors.values()
         ]
+        deployments_out = [
+            {
+                "id": d["id"],
+                "x": round(d["x"], 1),
+                "y": round(d["y"], 1),
+                "tx": d["tx"],
+                "ty": d["ty"],
+                "status": d["status"],
+                "unit_size": d.get("unit_size", "standard")
+            }
+            for d in _deployments.values()
+        ]
         stats_out = dict(_stats)
         dome_out = _dome_active
 
     return {
         "missiles": missiles_out,
         "interceptors": interceptors_out,
+        "deployments": deployments_out,
         "stats": stats_out,
         "dome_active": dome_out,
         "arena": {"w": ARENA_W, "h": ARENA_H, "dome_cx": DOME_CX, "dome_cy": DOME_CY, "dome_r": DOME_RADIUS},
@@ -315,6 +356,26 @@ def set_dome(active: bool):
     with _lock:
         _dome_active = active
     logger.info(f"MissileSim: Dome set to {'ACTIVE' if active else 'OFFLINE'}")
+
+
+def trigger_deployment(lat, lon, unit_size='standard'):
+    """Launch a troop deployment toward a coordinate."""
+    did = str(uuid.uuid4())[:8]
+    # Start all deployments from the center dome area
+    deployment = {
+        "id": did,
+        "x": float(DOME_CX),
+        "y": float(DOME_CY),
+        "tx": float(lat),
+        "ty": float(lon),
+        "status": "deploying",
+        "unit_size": unit_size,
+        "created_at": time.time()
+    }
+    with _lock:
+        _deployments[did] = deployment
+    logger.info(f"MissileSim: DEPLOYED troops {did} -> ({lat}, {lon})")
+    return did
 
 
 def get_dome_state() -> bool:

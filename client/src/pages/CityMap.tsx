@@ -1,434 +1,401 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, memo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Crosshair, Shield, Zap } from 'lucide-react';
+import { AlertCircle, Shield, Zap, Target, Activity } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
+
+// Constants for mapping physics to canvas
+const PHYS_W = 800; // Physics coordinate width
+const PHYS_H = 600; // Physics coordinate height
 
 /**
- * City Map - Interactive visualization of terrorist attack response
- * Shows events, troop deployments, dome coverage, and missile tracking
+ * High-performance Tactical Map
+ * Uses Ref-based rendering and 60fps animation loop to ensure fluidity
  */
 export default function CityMap() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [events, setEvents] = useState<any[]>([]);
-  const [deployments, setDeployments] = useState<any[]>([]);
-  const [missiles, setMissiles] = useState<any[]>([]);
-  const [domeActive, setDomeActive] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch initial data
+  // Refs for high-frequency data (prevents React re-renders)
+  const telemetryRef = useRef<any>({
+    missiles: [],
+    interceptors: [],
+    deployments: [],
+    arena: { w: PHYS_W, h: PHYS_H, dome_cx: 400, dome_cy: 500, dome_r: 130 },
+    dome_active: true
+  });
+
+  // Static state for UI elements (severity, names, etc)
+  const [events, setEvents] = useState<any[]>([]);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+  const socketRef = useRef<Socket | null>(null);
+
+  // 1. Initial Data Fetch & Socket Setup
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      setError(null);
       try {
-        const [statusRes, eventsRes] = await Promise.all([
-          fetch('/api/simulation/status'),
-          fetch('/api/events')
-        ]);
-
-        if (!statusRes.ok || !eventsRes.ok) {
-          throw new Error('SYSTEM_OFFLINE');
-        }
-
-        const statusData = await statusRes.json();
-        const eventsData = await eventsRes.json();
-
-        setDomeActive(statusData.dome_active);
-        setEvents(eventsData.events || []);
-      } catch (err: any) {
-        console.error('Error fetching map data:', err);
-        setError('SYSTEM_BACKEND_OFFLINE');
-      } finally {
-        setLoading(false);
+        const res = await fetch('/api/events');
+        if (!res.ok) throw new Error('BACKEND_OFFLINE');
+        const data = await res.json();
+        setEvents(data.events || []);
+      } catch (err) {
+        setError('SYNC_LOST');
       }
     };
 
     fetchData();
-  }, [retryCount]);
 
-  // Simulate canvas drawing
+    // Connect socket for real-time telemetry
+    socketRef.current = io(window.location.origin, {
+      transports: ['websocket'],
+      reconnectionAttempts: 5
+    });
+
+    socketRef.current.on('missile_physics_update', (data) => {
+      telemetryRef.current = data;
+    });
+
+    socketRef.current.on('event_created', (event) => {
+      setEvents(prev => [...prev, event]);
+    });
+
+    socketRef.current.on('connect_error', () => {
+      setError('CONNECTION_ERROR');
+    });
+
+    socketRef.current.on('connect', () => {
+      setError(null);
+    });
+
+    return () => {
+      socketRef.current?.disconnect();
+    };
+  }, []);
+
+  // 2. Animation Loop (60FPS)
   useEffect(() => {
+    let animationId: number;
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const render = () => {
+      const { missiles, interceptors, deployments, arena, dome_active } = telemetryRef.current;
+      const time = Date.now();
 
-    // Draw grid
-    ctx.strokeStyle = 'rgba(0, 255, 255, 0.1)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i < canvas.width; i += 50) {
-      ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, canvas.height);
-      ctx.stroke();
-    }
-    for (let i = 0; i < canvas.height; i += 50) {
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(canvas.width, i);
-      ctx.stroke();
-    }
+      // Clear & Background
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw dome if active
-    if (domeActive) {
-      ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(canvas.width / 2, canvas.height / 2, 200, 0, Math.PI * 2);
-      ctx.stroke();
+      // Scale calculations
+      const scaleX = canvas.width / arena.w;
+      const scaleY = canvas.height / arena.h;
 
-      // Dome segments
-      ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
-      for (let i = 0; i < 8; i++) {
-        const angle = (Math.PI * 2 / 8) * i;
-        const x = canvas.width / 2 + Math.cos(angle) * 200;
-        const y = canvas.height / 2 + Math.sin(angle) * 200;
-        ctx.beginPath();
-        ctx.moveTo(canvas.width / 2, canvas.height / 2);
-        ctx.lineTo(x, y);
-        ctx.stroke();
+      // Draw Grid
+      ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }
-    }
+      for (let y = 0; y < canvas.height; y += 40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+      }
 
-    // Draw events
-    events.forEach((event) => {
-      const x = (event.location.x % 1000) * (canvas.width / 1000);
-      const y = (event.location.y % 1000) * (canvas.height / 1000);
+      // Draw Dome
+      if (dome_active) {
+        const cx = arena.dome_cx * scaleX;
+        const cy = arena.dome_cy * scaleY;
+        const r = arena.dome_r * scaleX;
 
-      // Event marker
-      const color = event.severity === 'critical' ? '#ff0000' :
-        event.severity === 'high' ? '#ff6600' : '#ffff00';
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Event glow
-      ctx.strokeStyle = color + '80';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(x, y, 15, 0, Math.PI * 2);
-      ctx.stroke();
-    });
-
-    // Draw deployments
-    deployments.forEach((deployment) => {
-      const x = (deployment.location.x % 1000) * (canvas.width / 1000);
-      const y = (deployment.location.y % 1000) * (canvas.height / 1000);
-
-      // Deployment marker
-      ctx.fillStyle = '#00ff00';
-      ctx.fillRect(x - 6, y - 6, 12, 12);
-
-      // Deployment glow
-      ctx.strokeStyle = '#00ff0080';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x - 12, y - 12, 24, 24);
-    });
-
-    // Draw missiles
-    missiles.forEach((missile) => {
-      const startX = (missile.location.x % 1000) * (canvas.width / 1000);
-      const startY = (missile.location.y % 1000) * (canvas.height / 1000);
-      const targetX = missile.target ? (missile.target.x % 1000) * (canvas.width / 1000) : canvas.width / 2;
-      const targetY = missile.target ? (missile.target.y % 1000) * (canvas.height / 1000) : canvas.height / 2;
-      const progress = missile.progress !== undefined ? missile.progress : 1;
-
-      const x = startX + (targetX - startX) * progress;
-      const y = startY + (targetY - startY) * progress;
-
-      if (missile.status === 'incoming') {
-        // Draw path line (faint)
-        ctx.strokeStyle = 'rgba(255, 0, 255, 0.2)';
-        ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(targetX, targetY);
-        ctx.stroke();
-
-        // Draw trail behind missile
-        ctx.strokeStyle = 'rgba(255, 0, 255, 0.8)';
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        const trailLen = Math.max(0, progress - 0.2); // length of trail length
-        const trailX = startX + (targetX - startX) * trailLen;
-        const trailY = startY + (targetY - startY) * trailLen;
-        ctx.moveTo(trailX, trailY);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-
-        // Missile marker (triangle)
-        const angle = Math.atan2(targetY - startY, targetX - startX);
-        ctx.fillStyle = '#ff00ff';
-        ctx.beginPath();
-        ctx.moveTo(x + Math.cos(angle) * 10, y + Math.sin(angle) * 10);
-        ctx.lineTo(x + Math.cos(angle + Math.PI * 0.75) * 8, y + Math.sin(angle + Math.PI * 0.75) * 8);
-        ctx.lineTo(x + Math.cos(angle - Math.PI * 0.75) * 8, y + Math.sin(angle - Math.PI * 0.75) * 8);
-        ctx.fill();
-
-        ctx.fillStyle = '#ff00ff';
-        ctx.font = 'bold 10px monospace';
-        ctx.fillText('MISSILE_INCOMING', x + 15, y - 10);
-      } else if (missile.status === 'intercepted') {
-        const expProgress = progress > 1 ? progress - 1 : 0;
-        const opacity = Math.max(0, 1 - expProgress * 1.5);
-
-        ctx.fillStyle = `rgba(255, 255, 0, ${opacity * 0.8})`;
-        ctx.beginPath();
-        ctx.arc(x, y, 20 + expProgress * 50, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = `rgba(255, 100, 0, ${opacity})`;
+        ctx.strokeStyle = 'rgba(0, 255, 255, 0.2)';
         ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
         ctx.beginPath();
-        ctx.arc(x, y, 30 + expProgress * 60, 0, Math.PI * 2);
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Scan pulse in dome
+        const pulse = (time % 2000) / 2000;
+        ctx.strokeStyle = `rgba(0, 255, 255, ${0.1 * (1 - pulse)})`;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r * pulse, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // Draw Events (Static locations from state, but animated visuals)
+      events.forEach(event => {
+        const x = event.location.x * scaleX;
+        const y = event.location.y * scaleY;
+        const isSelected = selectedEvent?.id === event.id;
+
+        // Rhythmic Threat Pulse
+        const pulseSize = 8 + Math.sin(time / 200) * 3;
+        const severityColor = event.severity === 'critical' ? '#ff0000' :
+          event.severity === 'high' ? '#ff6600' : '#ffff00';
+
+        ctx.shadowBlur = isSelected ? 20 : 10;
+        ctx.shadowColor = severityColor;
+        ctx.fillStyle = severityColor;
+        ctx.beginPath();
+        ctx.arc(x, y, pulseSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // Outer glow
+        ctx.strokeStyle = `${severityColor}40`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(x, y, pulseSize + 4, 0, Math.PI * 2);
         ctx.stroke();
 
-        ctx.fillStyle = `rgba(0, 255, 0, ${opacity})`;
-        ctx.font = 'bold 12px monospace';
-        ctx.fillText('INTERCEPTED', x + 25, y);
-      }
-    });
-
-  }, [events, deployments, missiles, domeActive]);
-
-  const handleSimulateEvent = () => {
-    const newEvent = {
-      id: Math.random().toString(36),
-      type: 'attack',
-      location: {
-        x: Math.random() * 1000,
-        y: Math.random() * 1000
-      },
-      severity: ['low', 'medium', 'high', 'critical'][Math.floor(Math.random() * 4)],
-      description: 'Simulated attack event'
-    };
-    setEvents([...events, newEvent]);
-    setSelectedEvent(newEvent);
-  };
-
-  const handleDeployTroops = () => {
-    if (!selectedEvent) return;
-    const deployment = {
-      id: Math.random().toString(36),
-      location: selectedEvent.location,
-      unit_size: 'standard',
-      status: 'deploying'
-    };
-    setDeployments([...deployments, deployment]);
-  };
-
-  // Animate missiles for CityMap
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMissiles(prev => prev.map(m => {
-        if (m.status === 'incoming') {
-          return { ...m, progress: Math.min(1, m.progress + 0.02) };
-        } else if (m.status === 'intercepted') {
-          return { ...m, progress: m.progress + 0.05 };
+        if (isSelected) {
+          ctx.setLineDash([2, 4]);
+          ctx.strokeStyle = '#00ffff';
+          ctx.beginPath();
+          ctx.arc(x, y, 25, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
-        return m;
-      }).filter(m => m.progress < 2)); // remove after explosion animation finishes
-    }, 50);
-    return () => clearInterval(interval);
-  }, []);
+      });
 
-  const handleSimulateMissile = () => {
-    const missile = {
-      id: Math.random().toString(36),
-      location: {
-        x: Math.random() * 1000,
-        y: 0
-      },
-      target: {
-        x: 300 + Math.random() * 400,
-        y: 300 + Math.random() * 400
-      },
-      status: 'incoming',
-      progress: 0
+      // Draw Troop Deployments (Fluid Movement from Physics)
+      deployments.forEach((d: any) => {
+        const x = d.x * scaleX;
+        const y = d.y * scaleY;
+        const arrived = d.status === 'arrived';
+
+        // Unit Square
+        ctx.fillStyle = arrived ? '#00ff00' : '#00ffff';
+        ctx.fillRect(x - 5, y - 5, 10, 10);
+
+        // Pulse if arrived
+        if (arrived) {
+          const p = (time % 1000) / 1000;
+          ctx.strokeStyle = `rgba(0, 255, 0, ${1 - p})`;
+          ctx.strokeRect(x - 5 - p * 10, y - 5 - p * 10, 10 + p * 20, 10 + p * 20);
+        } else {
+          // Movement trail
+          ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+          ctx.beginPath();
+          ctx.moveTo(arena.dome_cx * scaleX, arena.dome_cy * scaleY);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '8px monospace';
+        ctx.fillText(d.unit_size.toUpperCase(), x + 8, y + 4);
+      });
+
+      // Draw Missiles (Reuse fluid logic)
+      missiles.forEach((m: any) => {
+        const x = m.x * scaleX;
+        const y = m.y * scaleY;
+
+        if (m.status === 'incoming') {
+          // Trail
+          if (m.trail && m.trail.length > 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255, 0, 255, 0.4)';
+            ctx.lineWidth = 2;
+            m.trail.forEach((p: any, i: number) => {
+              if (i === 0) ctx.moveTo(p[0] * scaleX, p[1] * scaleY);
+              else ctx.lineTo(p[0] * scaleX, p[1] * scaleY);
+            });
+            ctx.stroke();
+          }
+
+          // Missile Head
+          ctx.fillStyle = '#ff00ff';
+          ctx.beginPath();
+          ctx.arc(x, y, 3, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (m.status === 'intercepted') {
+          const dt = (time / 1000) - m.status_changed_at;
+          if (dt < 1.0) {
+            const p = dt / 1.0;
+            ctx.fillStyle = `rgba(255, 255, 255, ${1 - p})`;
+            ctx.beginPath();
+            ctx.arc(x, y, p * 40, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      });
+
+      animationId = requestAnimationFrame(render);
     };
-    setMissiles((prev) => [...prev, missile]);
 
-    // Auto-intercept after reaching target (roughly ~2.5 seconds)
-    setTimeout(() => {
-      setMissiles(prev => prev.map(m =>
-        m.id === missile.id ? { ...m, status: 'intercepted', progress: 1 } : m
-      ));
-    }, 2500);
+    render();
+    return () => cancelAnimationFrame(animationId);
+  }, [events, selectedEvent]);
+
+  // Handlers
+  const handleSimulateEvent = async () => {
+    const res = await fetch('/api/events', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: 'attack',
+        location: { x: Math.random() * 700 + 50, y: Math.random() * 400 + 50 },
+        severity: ['low', 'high', 'critical'][Math.floor(Math.random() * 3)],
+        description: 'Simulated tactical threat'
+      })
+    });
+    const data = await res.json();
+    setSelectedEvent(data);
+  };
+
+  const handleDeployTroops = async () => {
+    if (!selectedEvent) return;
+    await fetch('/api/commands/deploy-troops', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        location: selectedEvent.location,
+        unit_size: selectedEvent.severity === 'critical' ? 'heavy' : 'standard'
+      })
+    });
+  };
+
+  const handleSimulateMissile = async () => {
+    await fetch('/api/commands/simulate-missile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ count: 1 })
+    });
   };
 
   return (
-    <div className="h-full bg-black text-white p-6 overflow-hidden flex flex-col">
-      {/* Scanline effect */}
-      <div className="fixed inset-0 pointer-events-none opacity-5">
-        <div className="absolute inset-0 bg-repeat" style={{
-          backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.1) 2px, rgba(0, 255, 255, 0.1) 4px)',
-          animation: 'scanlines 8s linear infinite'
-        }} />
+    <div className="h-full bg-black text-white p-6 overflow-hidden flex flex-col font-mono" ref={containerRef}>
+      {/* Tactical Overlays */}
+      <div className="fixed inset-0 pointer-events-none opacity-[0.03]">
+        <div className="absolute inset-0 bg-[repeating-linear-gradient(0deg,transparent,transparent_2px,rgba(0,255,255,1)_2px,rgba(0,255,255,1)_4px)]" />
       </div>
 
-      <div className="relative z-10 flex flex-col h-full gap-6">
-        {/* Header - Compact */}
-        <div className="border-b-2 border-cyan-500 pb-4 flex flex-col gap-1 flex-shrink-0">
-          <div className="flex justify-between items-center">
-            <h1 className="text-3xl font-bold text-white tracking-widest font-mono">CITY_TACTICAL_MAP</h1>
-            {error && (
-              <div className="flex items-center gap-2 bg-red-950/40 border border-red-500/50 px-3 py-1 rounded animate-pulse">
-                <AlertCircle className="w-3 h-3 text-red-500" />
-                <span className="text-[10px] text-red-500 font-mono font-bold uppercase tracking-tighter">
-                  GRID_SYNC_ERROR: {error}
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 px-2 text-[8px] bg-red-500/10 hover:bg-red-500/20 text-red-400 font-mono border border-red-500/20"
-                  onClick={() => setRetryCount(prev => prev + 1)}
-                >
-                  RE-SYNC
-                </Button>
-              </div>
-            )}
-          </div>
-          <p className="text-cyan-400 text-xs font-mono opacity-80">Real-time threat visualization and response coordination // GRID_SYNC: {error ? 'LOST' : 'ACTIVE'}</p>
+      <header className="border-b border-cyan-500/30 pb-4 mb-6 flex justify-between items-end">
+        <div>
+          <h1 className="text-2xl font-bold tracking-[0.2em] text-cyan-400">CITY_TACTICAL_GRID_v4.0</h1>
+          <p className="text-[10px] text-cyan-800 uppercase tracking-widest mt-1">
+            Real-time multi-agent response coordination // 60FPS_SYNC: OK
+          </p>
         </div>
+        {error && (
+          <div className="flex items-center gap-2 text-red-500 animate-pulse text-xs bg-red-500/10 px-3 py-1 border border-red-500/20">
+            <AlertCircle className="w-3 h-3" />
+            <span>LINK_FAILURE: {error}</span>
+          </div>
+        )}
+      </header>
 
-        <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Map Canvas - Flexing to fill space */}
-          <div className="lg:col-span-3 flex flex-col h-full min-h-0">
-            <Card className="bg-gray-900/50 border border-cyan-500/50 p-4 flex-1 flex flex-col min-h-0 overflow-hidden shadow-[0_0_15px_rgba(0,255,255,0.05)]">
-              <div className="flex-1 relative border border-cyan-400/30 overflow-hidden bg-black">
-                <canvas
-                  ref={canvasRef}
-                  width={1200}
-                  height={900}
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <div className="mt-4 flex justify-between items-center text-[10px] text-cyan-900 font-mono tracking-tighter shrink-0 uppercase">
-                <div>Grid_System: 1000x1000u // Dome_R: 200u</div>
-                <div className="flex gap-4">
-                  <span>Targets: {events.length}</span>
-                  <span>Units: {deployments.length}</span>
-                  <span>Projectiles: {missiles.length}</span>
-                </div>
-              </div>
-            </Card>
+      <div className="flex-1 grid grid-cols-12 gap-6 min-h-0">
+        {/* Left: Map Area */}
+        <Card className="col-span-12 lg:col-span-9 bg-gray-900/20 border-cyan-500/30 relative flex flex-col p-2 overflow-hidden">
+          <div className="absolute top-4 left-4 z-20 flex gap-2">
+            <div className="h-2 w-2 rounded-full bg-cyan-500 animate-ping" />
+            <span className="text-[8px] text-cyan-500">LIVE_TRACKING</span>
           </div>
 
-          {/* Control Panel - Scrolled internally if needed */}
-          <div className="flex flex-col h-full min-h-0 gap-4 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-cyan-900 scrollbar-track-transparent">
-            {/* Dome Status */}
-            <Card className="bg-gray-900/40 border border-cyan-500/30 p-4 shrink-0 transition-all hover:border-cyan-400/50">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-3 h-3 text-cyan-400" />
-                <h3 className="font-mono text-cyan-400 text-[10px] tracking-widest uppercase">Shield_Status</h3>
-              </div>
-              <div className="text-xl font-bold text-white mb-3 font-mono">
-                {domeActive ? 'ACTIVE' : 'OFFLINE'}
-              </div>
-              <Button
-                onClick={() => setDomeActive(!domeActive)}
-                className="w-full bg-cyan-950/20 border border-cyan-500/50 hover:bg-cyan-500/30 text-cyan-400 font-mono text-[10px] h-8 tracking-widest uppercase"
-              >
-                {domeActive ? 'Deactivate' : 'Activate'}
-              </Button>
-            </Card>
+          <div className="flex-1 bg-black border border-cyan-500/10 relative">
+            <canvas
+              ref={canvasRef}
+              width={1600}
+              height={1200}
+              className="w-full h-full object-contain"
+            />
+          </div>
 
-            {/* Event Controls */}
-            <Card className="bg-gray-900/40 border border-magenta-500/30 p-4 shrink-0 transition-all hover:border-magenta-400/50">
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-3 h-3 text-magenta-400" />
-                <h3 className="font-mono text-magenta-400 text-[10px] tracking-widest uppercase">Threat_Vector</h3>
-              </div>
-              <div className="text-[10px] text-white mb-3 font-mono bg-black/40 p-2 border border-magenta-500/10 min-h-[40px]">
-                {selectedEvent ? (
-                  <div className="flex flex-col gap-0.5">
-                    <div className="flex justify-between"><span>TYPE:</span> <span className="text-magenta-400">{selectedEvent.type.toUpperCase()}</span></div>
-                    <div className="flex justify-between"><span>LVL:</span> <span className="text-magenta-400">{selectedEvent.severity.toUpperCase()}</span></div>
-                    <div className="flex justify-between"><span>COORD:</span> <span className="text-magenta-400">[{selectedEvent.location.x.toFixed(0)}, {selectedEvent.location.y.toFixed(0)}]</span></div>
-                  </div>
-                ) : (
-                  <div className="text-gray-600 italic uppercase tracking-tighter text-[9px] h-full flex items-center justify-center">No active selection</div>
-                )}
-              </div>
+          <div className="p-2 flex justify-between text-[8px] text-cyan-900 uppercase">
+            <span>Coordinates: PHYS_800x600</span>
+            <div className="flex gap-4">
+              <span className="flex items-center gap-1"><Target className="w-2 h-2" /> Threads: {events.length}</span>
+              <span className="flex items-center gap-1"><Activity className="w-2 h-2" /> Units: {telemetryRef.current.deployments.length}</span>
+            </div>
+          </div>
+        </Card>
+
+        {/* Right: Controls & Data */}
+        <div className="col-span-12 lg:col-span-3 flex flex-col gap-4">
+          <Card className="bg-gray-900/40 border-cyan-500/20 p-4">
+            <h3 className="text-[10px] text-cyan-500 font-bold mb-4 flex items-center gap-2">
+              <Zap className="w-3 h-3" /> SIMULATION_CONTROLS
+            </h3>
+            <div className="space-y-2">
               <Button
                 onClick={handleSimulateEvent}
-                className="w-full bg-magenta-950/20 border border-magenta-500/50 hover:bg-magenta-500/30 text-magenta-400 font-mono text-[10px] h-8 tracking-widest uppercase"
+                className="w-full h-8 text-[10px] bg-cyan-950/40 border border-cyan-500/30 hover:bg-cyan-500/20 text-cyan-400"
               >
-                Infect_Threat
+                INFECT_THREAT
               </Button>
-            </Card>
+              <Button
+                onClick={handleDeployTroops}
+                disabled={!selectedEvent}
+                className="w-full h-8 text-[10px] bg-green-950/40 border border-green-500/30 hover:bg-green-500/20 text-green-400 disabled:opacity-20"
+              >
+                DEPLOY_UNIT
+              </Button>
+              <Button
+                onClick={handleSimulateMissile}
+                className="w-full h-8 text-[10px] bg-magenta-950/40 border border-magenta-500/30 hover:bg-magenta-500/20 text-magenta-400"
+              >
+                TRIG_MISSILE
+              </Button>
+            </div>
+          </Card>
 
-            {/* Action Panel */}
-            <Card className="bg-gray-900/40 border border-cyan-500/30 p-4 shrink-0 transition-all hover:border-cyan-400/50">
-              <div className="flex items-center gap-2 mb-3">
-                <Zap className="w-3 h-3 text-green-400" />
-                <h3 className="font-mono text-cyan-400 text-[10px] tracking-widest uppercase">Deployment</h3>
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                <Button
-                  onClick={handleDeployTroops}
-                  disabled={!selectedEvent}
-                  className="w-full bg-green-950/20 border border-green-500/50 hover:bg-green-500/30 text-green-400 font-mono text-[10px] h-8 tracking-widest uppercase disabled:opacity-20"
-                >
-                  Deploy_Unit
-                </Button>
-                <Button
-                  onClick={handleSimulateMissile}
-                  className="w-full bg-red-950/20 border border-red-500/50 hover:bg-red-500/30 text-red-400 font-mono text-[10px] h-8 tracking-widest uppercase"
-                >
-                  Trig_Missile
-                </Button>
-              </div>
-            </Card>
+          <Card className="flex-1 bg-gray-900/40 border-cyan-500/20 p-4 flex flex-col min-h-0">
+            <h3 className="text-[10px] text-cyan-500 font-bold mb-4">ACTIVE_THREATS</h3>
+            <div className="flex-1 overflow-y-auto space-y-2 pr-2 scrollbar-thin">
+              {events.length === 0 ? (
+                <div className="text-[9px] text-gray-700 italic text-center py-8">NO_ACTIVE_THREATS</div>
+              ) : (
+                events.map(event => (
+                  <div
+                    key={event.id}
+                    onClick={() => setSelectedEvent(event)}
+                    className={`p-2 border cursor-pointer transition-all ${selectedEvent?.id === event.id ? 'bg-cyan-500/10 border-cyan-500' : 'bg-black/40 border-white/5 hover:border-white/20'}`}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className={`text-[10px] font-bold ${event.severity === 'critical' ? 'text-red-500' : 'text-yellow-500'}`}>
+                        {event.severity.toUpperCase()}
+                      </span>
+                      <span className="text-[8px] text-gray-600">ID: {event.id.slice(0, 8)}</span>
+                    </div>
+                    <div className="text-[9px] text-gray-400">Position: [{event.location.x.toFixed(0)}, {event.location.y.toFixed(0)}]</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
 
-            {/* Legend - Compact */}
-            <Card className="bg-gray-900/40 border border-cyan-500/10 p-3 mt-auto shadow-inner">
-              <h3 className="font-mono text-cyan-800 text-[9px] tracking-widest mb-2 uppercase">Protocol_Legend</h3>
-              <div className="grid grid-cols-2 gap-y-1.5 gap-x-1 text-[9px] font-mono tracking-tighter uppercase">
-                <div className="flex items-center gap-1.5 opacity-80">
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_5px_rgba(239,68,68,0.5)]"></div>
-                  <span>Threat</span>
-                </div>
-                <div className="flex items-center gap-1.5 opacity-80">
-                  <div className="w-1.5 h-1.5 bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.5)]"></div>
-                  <span>Unit</span>
-                </div>
-                <div className="flex items-center gap-1.5 opacity-80">
-                  <div className="w-1.5 h-1.5 bg-magenta-500 rounded-full shadow-[0_0_5px_rgba(255,0,255,0.5)]"></div>
-                  <span>Missile</span>
-                </div>
-                <div className="flex items-center gap-1.5 opacity-80">
-                  <div className="w-1.5 h-1.5 border border-cyan-400"></div>
-                  <span>Dome</span>
-                </div>
+          <Card className="bg-gray-900/40 border-cyan-500/10 p-3">
+            <div className="grid grid-cols-2 gap-2 text-[8px] text-cyan-900">
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500" /> THREAT
               </div>
-            </Card>
-          </div>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-green-500" /> UNIT
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 bg-magenta-500" /> PROJECTILE
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full border border-cyan-500" /> DOME
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
 
       <style>{`
-        @keyframes scanlines {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(10px); }
-        }
         .scrollbar-thin::-webkit-scrollbar {
-          width: 3px;
+          width: 2px;
         }
         .scrollbar-thin::-webkit-scrollbar-thumb {
-          background: rgba(0, 255, 255, 0.05);
+          background: rgba(0, 255, 255, 0.1);
           border-radius: 10px;
-        }
-        .scrollbar-thin::-webkit-scrollbar-track {
-          background: transparent;
         }
       `}</style>
     </div>

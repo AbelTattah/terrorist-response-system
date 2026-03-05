@@ -19,7 +19,7 @@ The Terrorist Attack Response System (TARS) implements a decentralized multi-age
 2. [SensorAgent FSM](#sensoragent-fsm)
 3. [CoordinatorAgent FSM](#coordinatoragent-fsm)
 4. [RescueAgent FSM](#rescueagent-fsm)
-5. [DomeDefenseAgent FSM](#domedefenseagent-fsm)
+5. [RescueAgent FSM](#RescueAgent-fsm)
 6. [Execution Trace Examples](#execution-trace-examples)
 7. [System Integration](#system-integration)
 
@@ -133,7 +133,7 @@ ALERT_TRIGGERED
 
 ### Purpose
 
-The CoordinatorAgent processes events from the SensorAgent and makes strategic decisions about resource allocation, assigning tasks to RescueAgent and DomeDefenseAgent.
+The CoordinatorAgent processes events from the SensorAgent and makes strategic decisions about resource allocation, assigning tasks to RescueAgent and RescueAgent.
 
 ### States
 
@@ -180,7 +180,7 @@ ASSIGNING
 
 #### ASSIGNING State
 - **Entry**: Create task assignments
-- **Behavior**: Send deployment orders to RescueAgent and DomeDefenseAgent
+- **Behavior**: Send deployment orders to RescueAgent and RescueAgent
 - **Task Assignment Logic**:
   - If threat_level > 7: Deploy large rescue unit
   - If threat_level > 5: Activate dome defense
@@ -287,11 +287,11 @@ ENGAGED
 
 ---
 
-## DomeDefenseAgent FSM
+## RescueAgent FSM
 
 ### Purpose
 
-The DomeDefenseAgent manages air defense systems, detecting and intercepting incoming missiles using autonomous drone interceptors.
+The RescueAgent manages air defense systems, detecting and intercepting incoming missiles using autonomous drone interceptors.
 
 ### States
 
@@ -370,22 +370,22 @@ INTERCEPTING
 ### Execution Trace Example
 
 ```
-[09:30:24] DomeDefenseAgent: IDLE → TRACKING (Activate Defense)
-[09:30:25] DomeDefenseAgent: Radar systems online
-[09:30:25] DomeDefenseAgent: Thermal imaging online
-[09:30:25] DomeDefenseAgent: Acoustic sensors online
-[09:30:26] DomeDefenseAgent: Monitoring airspace...
-[09:30:28] DomeDefenseAgent: MISSILE DETECTED!
-[09:30:28] DomeDefenseAgent: TRACKING → INTERCEPTING (Missile Detected)
-[09:30:28] DomeDefenseAgent: Missile position: (480, 510)
-[09:30:28] DomeDefenseAgent: Missile velocity: (850 km/h, incoming)
-[09:30:28] DomeDefenseAgent: Launching interceptor drone D003
-[09:30:29] DomeDefenseAgent: Drone en route to intercept point
-[09:30:29] DomeDefenseAgent: Guidance: Adjusting trajectory...
-[09:30:30] DomeDefenseAgent: Interceptor at intercept point
-[09:30:30] DomeDefenseAgent: DETONATING WARHEAD
-[09:30:30] DomeDefenseAgent: Missile destroyed!
-[09:30:30] DomeDefenseAgent: INTERCEPTING → TRACKING (Interception Complete)
+[09:30:24] RescueAgent: IDLE → TRACKING (Activate Defense)
+[09:30:25] RescueAgent: Radar systems online
+[09:30:25] RescueAgent: Thermal imaging online
+[09:30:25] RescueAgent: Acoustic sensors online
+[09:30:26] RescueAgent: Monitoring airspace...
+[09:30:28] RescueAgent: MISSILE DETECTED!
+[09:30:28] RescueAgent: TRACKING → INTERCEPTING (Missile Detected)
+[09:30:28] RescueAgent: Missile position: (480, 510)
+[09:30:28] RescueAgent: Missile velocity: (850 km/h, incoming)
+[09:30:28] RescueAgent: Launching interceptor drone D003
+[09:30:29] RescueAgent: Drone en route to intercept point
+[09:30:29] RescueAgent: Guidance: Adjusting trajectory...
+[09:30:30] RescueAgent: Interceptor at intercept point
+[09:30:30] RescueAgent: DETONATING WARHEAD
+[09:30:30] RescueAgent: Missile destroyed!
+[09:30:30] RescueAgent: INTERCEPTING → TRACKING (Interception Complete)
 ```
 
 ---
@@ -400,7 +400,7 @@ This execution trace demonstrates the complete system response to a terrorist at
 [09:30:15] SensorAgent: IDLE → MONITORING (Start Monitoring)
 [09:30:15] CoordinatorAgent: IDLE (Waiting for events)
 [09:30:15] RescueAgent: IDLE (Waiting for deployment orders)
-[09:30:15] DomeDefenseAgent: IDLE (System inactive)
+[09:30:15] RescueAgent: IDLE (System inactive)
 
 [09:30:18] SensorAgent: Event detected from NewsAPI
 [09:30:19] SensorAgent: MONITORING → ALERT_TRIGGERED
@@ -415,9 +415,9 @@ This execution trace demonstrates the complete system response to a terrorist at
 [09:30:23] RescueAgent: IDLE → DEPLOYING (Deploy Command)
 [09:30:23] RescueAgent: Deploying Large Unit (150 personnel)
 
-[09:30:23] CoordinatorAgent: Sending activation order to DomeDefenseAgent
-[09:30:23] DomeDefenseAgent: IDLE → TRACKING (Activate Defense)
-[09:30:24] DomeDefenseAgent: Defense systems online
+[09:30:23] CoordinatorAgent: Sending activation order to RescueAgent
+[09:30:23] RescueAgent: IDLE → TRACKING (Activate Defense)
+[09:30:24] RescueAgent: Defense systems online
 
 [09:30:24] CoordinatorAgent: ASSIGNING → IDLE (Tasks Assigned)
 [09:30:24] SensorAgent: ALERT_TRIGGERED → MONITORING (Alert Acknowledged)
@@ -425,10 +425,10 @@ This execution trace demonstrates the complete system response to a terrorist at
 [09:30:29] RescueAgent: DEPLOYING → ENGAGED (Troops Arrived)
 [09:30:29] RescueAgent: Beginning ground operations
 
-[09:30:28] DomeDefenseAgent: MISSILE DETECTED!
-[09:30:28] DomeDefenseAgent: TRACKING → INTERCEPTING
-[09:30:30] DomeDefenseAgent: Missile intercepted successfully
-[09:30:30] DomeDefenseAgent: INTERCEPTING → TRACKING
+[09:30:28] RescueAgent: MISSILE DETECTED!
+[09:30:28] RescueAgent: TRACKING → INTERCEPTING
+[09:30:30] RescueAgent: Missile intercepted successfully
+[09:30:30] RescueAgent: INTERCEPTING → TRACKING
 
 [09:31:45] RescueAgent: Mission objectives complete
 [09:31:46] RescueAgent: ENGAGED → IDLE
@@ -445,7 +445,7 @@ SensorAgent
     ↓ (Alert Message)
 CoordinatorAgent
     ├─ (Deployment Order) → RescueAgent
-    └─ (Activation Order) → DomeDefenseAgent
+    └─ (Activation Order) → RescueAgent
 ```
 
 ### Communication Protocol
@@ -454,9 +454,9 @@ CoordinatorAgent
 |--------------|------|----|---------| 
 | EVENT_ALERT | SensorAgent | CoordinatorAgent | Event details, location, severity |
 | DEPLOY_ORDER | CoordinatorAgent | RescueAgent | Unit size, location, objectives |
-| ACTIVATE_DEFENSE | CoordinatorAgent | DomeDefenseAgent | Activation parameters |
+| ACTIVATE_DEFENSE | CoordinatorAgent | RescueAgent | Activation parameters |
 | STATUS_UPDATE | Any Agent | CoordinatorAgent | Current state, progress |
-| MISSILE_ALERT | DomeDefenseAgent | CoordinatorAgent | Missile detection, intercept status |
+| MISSILE_ALERT | RescueAgent | CoordinatorAgent | Missile detection, intercept status |
 
 ### Response Time Metrics
 

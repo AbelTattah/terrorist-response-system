@@ -69,7 +69,7 @@ The frontend serves as the Command Center, visually tracking incoming missiles, 
 ---
 
 ## 🛑 How to Use the Simulator
-- **City Tactical Map**: This displays a live layout of the region. Trigger a **"Trig_Missile"** event to simulate an incoming attack. Watch the `DomeDefenseAgent` dynamically calculate paths and deploy interceptors.
+- **City Tactical Map**: This displays a live layout of the region. Trigger a **"Trig_Missile"** event to simulate an incoming attack. Watch the `RescueAgent` dynamically calculate paths and deploy interceptors.
 - **Missile Defense Sim**: Dive directly into the kinetic interception visualization. Monitor incoming velocities and defense logic buffers.
 - **FSM Visualizer & Trace System**: Inspect the live Finite State Machine (FSM) states and execution trace timeline for each active node in the SPADE network (e.g., SensorAgent, ResponseAgent, SimulatorAgent).
 

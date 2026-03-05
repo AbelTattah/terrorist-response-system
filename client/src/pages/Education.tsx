@@ -60,7 +60,7 @@ In TARS, we have four types of agents:
 
 **CoordinatorAgent**: Processes events and makes strategic decisions
 - Analyzes threat severity
-- Assigns tasks to RescueAgent and DomeDefenseAgent
+- Assigns tasks to RescueAgent and RescueAgent
 - Prioritizes resource allocation
 
 **RescueAgent**: Manages troop deployments
@@ -68,7 +68,7 @@ In TARS, we have four types of agents:
 - Coordinates ground response
 - Tracks deployment status
 
-**DomeDefenseAgent**: Manages air defense systems
+**RescueAgent**: Manages air defense systems
 - Tracks incoming missiles
 - Launches interceptor drones
 - Protects critical infrastructure
@@ -110,7 +110,7 @@ complex planning or reasoning. This is crucial for emergency response systems.
 3. Sends alert to CoordinatorAgent (ACTION)
 4. CoordinatorAgent receives alert and transitions to PROCESSING (REACTION)
 5. CoordinatorAgent analyzes threat and transitions to ASSIGNING (DECISION)
-6. CoordinatorAgent sends deployment orders to RescueAgent and DomeDefenseAgent (COORDINATION)
+6. CoordinatorAgent sends deployment orders to RescueAgent and RescueAgent (COORDINATION)
 7. Both agents execute their tasks in parallel (DECENTRALIZED EXECUTION)
 
 This entire sequence happens in milliseconds, enabling rapid response to threats.
@@ -181,7 +181,7 @@ TARS uses several technologies to implement multi-agent systems:
 
 **Data Flow**:
 1. Sensor detects event → SPADE message to CoordinatorAgent
-2. CoordinatorAgent processes → Sends messages to RescueAgent and DomeDefenseAgent
+2. CoordinatorAgent processes → Sends messages to RescueAgent and RescueAgent
 3. Agents execute tasks → Update database
 4. Backend broadcasts updates via WebSocket
 5. Frontend receives updates → Visualizes in real-time

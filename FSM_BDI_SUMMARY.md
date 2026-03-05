@@ -18,7 +18,7 @@ Each agent in the TARS system operates as an autonomous node with a dedicated FS
 *   **COORDINATOR_ASSIGNING**: Dispatching specific tasks to response agents (Rescue/Dome).
 *   **Transition Pattern**: `IDLE -> PROCESSING -> ASSIGNING -> IDLE`.
 
-### DomeDefenseAgent FSM
+### RescueAgent FSM
 *   **DOME_IDLE**: Standby.
 *   **DOME_TRACKING**: High-alert mode; scanning the physics engine for incoming projectiles.
 *   **DOME_INTERCEPTING**: Kinetic engagement activated. Launches interceptors toward targets.
@@ -39,7 +39,7 @@ The agents exhibit BDI characteristics in their autonomous decision loop:
 ### Beliefs (Represented by Agent Mental Models)
 *   Agents maintain beliefs about the world via messages and the `environment` simulation.
 *   Example: `SensorAgent` believes there is a threat if a specific "Suspicious activity" message is received.
-*   Example: `DomeDefenseAgent` believes a missile exists if it sees it in the physics snapshot.
+*   Example: `RescueAgent` believes a missile exists if it sees it in the physics snapshot.
 
 ### Desires (Represented by Agent Goals)
 *   Desires are the long-term objectives assigned during agent setup.
@@ -49,7 +49,7 @@ The agents exhibit BDI characteristics in their autonomous decision loop:
 
 ### Intentions (Represented by FSM Execution)
 *   Intentions are the specific plans the agent commit to at any given moment.
-*   When a `DomeDefenseAgent` transitions to `INTERCEPTING`, it has formed an **Intention** to launch an interceptor 0xFFA1 based on its **Belief** of a projectile and its **Desire** to protect the sector.
+*   When a `RescueAgent` transitions to `INTERCEPTING`, it has formed an **Intention** to launch an interceptor 0xFFA1 based on its **Belief** of a projectile and its **Desire** to protect the sector.
 
 ---
 
@@ -58,6 +58,6 @@ The agents exhibit BDI characteristics in their autonomous decision loop:
 The **Missile Defense** module bridges the logical (Agents) and physical (Real-time Simulation) worlds:
 1.  **Logical Layer**: `environment` agent triggers a missile event.
 2.  **Physics Layer**: `missile_simulation.py` spawns a missile with coordinates and velocity.
-3.  **BDI Reasoning**: `DomeDefenseAgent` observes the physical world, recognizes the threat, and intends to counter it.
+3.  **BDI Reasoning**: `RescueAgent` observes the physical world, recognizes the threat, and intends to counter it.
 4.  **Action**: The Agent instructs the physics simulator to spawn an interceptor.
 5.  **Feedback**: The physics engine broadcasts the result (collision detected), updating the agent's beliefs.

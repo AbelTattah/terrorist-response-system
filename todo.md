@@ -11,7 +11,7 @@
 - [ ] Implement SensorAgent with FSM (Idle → Monitoring → AlertTriggered)
 - [ ] Implement CoordinatorAgent with FSM (Idle → Processing → Assigning)
 - [ ] Implement RescueAgent with FSM (Idle → Deploying → Engaged)
-- [ ] Implement DomeDefenseAgent with FSM (Idle → Tracking → Intercepting)
+- [ ] Implement RescueAgent with FSM (Idle → Tracking → Intercepting)
 - [ ] Add agent-to-agent communication patterns
 - [ ] Implement message templates for inter-agent routing
 - [ ] Add news API integration for SensorAgent
@@ -75,7 +75,7 @@
 - [ ] Create SensorAgent status panel
 - [ ] Create CoordinatorAgent status panel
 - [ ] Create RescueAgent status panel
-- [ ] Create DomeDefenseAgent status panel
+- [ ] Create RescueAgent status panel
 - [ ] Implement real-time status updates
 - [ ] Add agent communication log viewer
 

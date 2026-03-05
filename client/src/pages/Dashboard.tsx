@@ -149,7 +149,7 @@ export default function Dashboard() {
                   { name: "SensorAgent-1", type: "sensor", state: "MONITORING" },
                   { name: "CoordinatorAgent-1", type: "coord", state: "IDLE" },
                   { name: "RescueAgent-1", type: "rescue", state: "IDLE" },
-                  { name: "DomeDefenseAgent-1", type: "defense", state: "TRACKING" }
+                  { name: "RescueAgent-1", type: "defense", state: "TRACKING" }
                 ].map((agent) => (
                   <Card key={agent.name} className="bg-black/40 border border-cyan-500/20 p-3 hover:border-cyan-500/50 transition-colors">
                     <div className="font-mono text-cyan-400 text-[10px] mb-1">{agent.name}</div>

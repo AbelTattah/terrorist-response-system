@@ -44,7 +44,7 @@ TARS implements four specialized agents working in parallel:
 1. **SensorAgent** - Detects threats from news APIs and verified user reports
 2. **CoordinatorAgent** - Analyzes threats and assigns tasks to response agents
 3. **RescueAgent** - Deploys troops for ground response operations
-4. **DomeDefenseAgent** - Intercepts incoming missiles with drone interceptors
+4. **RescueAgent** - Intercepts incoming missiles with drone interceptors
 
 Each agent operates independently using finite state machines, enabling:
 - Autonomous decision-making based on local information
@@ -122,7 +122,7 @@ The CoordinatorAgent implements a three-state FSM for threat analysis:
 - Transitions to ASSIGNING after analysis (2-second timeout)
 
 **ASSIGNING State:**
-- Creates task assignments for RescueAgent and DomeDefenseAgent
+- Creates task assignments for RescueAgent and RescueAgent
 - Sends deployment orders based on threat level
 - Transitions back to IDLE after tasks assigned
 
@@ -167,12 +167,12 @@ This FSM enables autonomous troop deployment without waiting for human authoriza
 
 ---
 
-## Slide 8: DomeDefenseAgent FSM
+## Slide 8: RescueAgent FSM
 
 **Title:** Autonomous Missile Interception
 
 **Content:**
-The DomeDefenseAgent implements a three-state FSM for air defense:
+The RescueAgent implements a three-state FSM for air defense:
 
 **IDLE State:**
 - Defense systems powered down
@@ -215,10 +215,10 @@ Complete execution trace of system response:
 4. **T+2.5s**: CoordinatorAgent completes analysis (Threat Level: 9)
 5. **T+3s**: CoordinatorAgent assigns tasks
 6. **T+3s**: RescueAgent receives deployment order → DEPLOYING
-7. **T+3s**: DomeDefenseAgent receives activation order → TRACKING
+7. **T+3s**: RescueAgent receives activation order → TRACKING
 8. **T+8s**: RescueAgent troops arrive → ENGAGED
-9. **T+8.5s**: DomeDefenseAgent detects incoming missile
-10. **T+8.5s**: DomeDefenseAgent launches interceptor → INTERCEPTING
+9. **T+8.5s**: RescueAgent detects incoming missile
+10. **T+8.5s**: RescueAgent launches interceptor → INTERCEPTING
 11. **T+9.5s**: Missile intercepted successfully
 12. **T+30s**: Ground operations ongoing, situation stabilized
 
@@ -242,7 +242,7 @@ Every agent decision is logged with:
 
 Example Trace Entry:
 ```
-[09:30:28] DomeDefenseAgent-1
+[09:30:28] RescueAgent-1
   Event: MISSILE_DETECTED
   State: TRACKING → INTERCEPTING
   Missile Position: (480, 510)
@@ -268,7 +268,7 @@ Agents communicate through asynchronous message passing:
 
 **Message Flow:**
 ```
-SensorAgent → CoordinatorAgent → {RescueAgent, DomeDefenseAgent}
+SensorAgent → CoordinatorAgent → {RescueAgent, RescueAgent}
 ```
 
 **Message Types:**

@@ -39,7 +39,7 @@ class EnvironmentAgent(LocalAgent):
         
         # Activate dome agent
         await self.send("dome", "ACTIVATE", {"performative": "request"})
-        logger.info("Environment Simulation: Sent ACTIVATE to DomeDefenseAgent")
+        logger.info("Environment Simulation: Sent ACTIVATE to RescueAgent")
         
         logger.info("Environment Simulation: All defense systems activated. Beginning autonomous event loop...")
         

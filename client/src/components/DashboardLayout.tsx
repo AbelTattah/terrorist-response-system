@@ -30,7 +30,8 @@ import {
   History,
   ShieldAlert,
   BookOpen,
-  Home
+  Home,
+  Presentation as PresentationIcon
 } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
@@ -40,11 +41,9 @@ import { Button } from "./ui/button";
 const menuItems = [
   { icon: Home, label: "Home", path: "/" },
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: MapIcon, label: "City Map", path: "/map" },
-  { icon: Network, label: "FSM Visualizer", path: "/fsm" },
-  { icon: History, label: "Execution Trace", path: "/trace" },
   { icon: ShieldAlert, label: "Missile Defense", path: "/defense" },
-  { icon: BookOpen, label: "Education", path: "/education" },
+  { icon: History, label: "Execution Trace", path: "/trace" },
+  { icon: PresentationIcon, label: "Presentations", path: "/presentation" },
 ];
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";

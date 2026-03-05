@@ -145,7 +145,7 @@
     {
       "id": "dome_defense_fsm",
       "title": "Autonomous Missile Interception",
-      "summary": "DomeDefenseAgent FSM for air defense with missile detection and interception specifications",
+      "summary": "RescueAgent FSM for air defense with missile detection and interception specifications",
       "image_plan": "Use a suitable image if needed",
       "slide_template_key": ""
     },

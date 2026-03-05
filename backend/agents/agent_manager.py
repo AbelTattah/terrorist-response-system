@@ -8,6 +8,7 @@ import logging
 import json
 from datetime import datetime
 from typing import Dict, List, Optional, Any
+from missile_simulation import trigger_deployment
 from models.database import get_db, Event, Agent, ExecutionTrace, Missile, Deployment
 from models.schemas import SystemState
 
@@ -55,13 +56,6 @@ class AgentManager:
                 'current_state': 'IDLE',
                 'status': 'active'
             },
-            {
-                'id': 'dome_agent_1',
-                'name': 'DomeDefenseAgent-1',
-                'type': 'dome',
-                'current_state': 'IDLE',
-                'status': 'active'
-            }
         ]
         
         for agent_config in agents_config:
@@ -175,6 +169,11 @@ class AgentManager:
             'created_at': datetime.utcnow().isoformat(),
             'arrived_at': None
         }
+        
+        # Trigger real-time physics simulation for troop movement
+        # Convert {x,y} to lat/lon for the physics engine coordinates
+        physics_id = trigger_deployment(location['x'], location['y'], unit_size)
+        deployment['physics_id'] = physics_id
         
         self.deployments.append(deployment)
         
